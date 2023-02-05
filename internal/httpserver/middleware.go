@@ -1,11 +1,17 @@
 package httpserver
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"strings"
+	"time"
 )
 
-const allowHeader = "Allow"
+const (
+	allowHeader          = "Allow"
+	authUserIDContextKey = "auth_user_id"
+)
 
 type middleware func(http.Handler) http.Handler
 
@@ -58,6 +64,36 @@ func contType(value string) middleware {
 				return
 			}
 			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func auth(ua UserAuthorizer) middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			accessToken := r.Header.Get(authHeader)
+			if accessToken == "" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+
+			ctx, cancel := context.WithTimeout(r.Context(), 100*time.Millisecond)
+			defer cancel()
+
+			userID, err := ua.AuthByToken(ctx, accessToken)
+			if errors.Is(err, ErrTokenNotValid) {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			rCtx := context.WithValue(r.Context(), authUserIDContextKey, userID)
+			req := r.Clone(rCtx)
+
+			next.ServeHTTP(w, req)
 		})
 	}
 }

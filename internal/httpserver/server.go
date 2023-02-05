@@ -45,10 +45,10 @@ func createHandler(ua UserAuthorizer, bm BonusManager) http.Handler {
 			switch r.Method {
 			case http.MethodPost:
 				log.Println("POST")
-				withMiddleware(postOrders(bm)).ServeHTTP(w, r)
+				withMiddleware(postOrders(bm), auth(ua)).ServeHTTP(w, r)
 			case http.MethodGet:
 				log.Println("GET")
-				withMiddleware(getOrders(bm)).ServeHTTP(w, r)
+				withMiddleware(getOrders(bm), auth(ua)).ServeHTTP(w, r)
 			}
 		}),
 		getOrPost,

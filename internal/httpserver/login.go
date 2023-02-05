@@ -56,5 +56,5 @@ func login(ua UserAuthorizer) http.Handler {
 
 		w.Header().Add(authHeader, accessToken)
 		w.WriteHeader(http.StatusOK)
-	})  
+	})
 }

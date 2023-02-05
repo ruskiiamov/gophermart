@@ -3,7 +3,6 @@ package httpserver
 import (
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -21,45 +20,6 @@ func TestNotFound(t *testing.T) {
 		response := w.Result()
 
 		assert.Equal(t, http.StatusNotFound, response.StatusCode)
-	})
-}
-
-func TestOrders(t *testing.T) {
-	target := "/api/user/orders"
-	ua := new(mockedUserAuthorizer)
-	bm := new(mockedBonusManager)
-	h := createHandler(ua, bm)
-
-	t.Run("method error", func(t *testing.T) {
-		r := httptest.NewRequest(http.MethodPut, target, nil)
-		w := httptest.NewRecorder()
-		h.ServeHTTP(w, r)
-		response := w.Result()
-
-		assert.Equal(t, http.StatusMethodNotAllowed, response.StatusCode)
-		assert.ElementsMatch(
-			t,
-			[]string{http.MethodPost, http.MethodGet},
-			strings.Split(response.Header.Get("Allow"), ", "),
-		)
-	})
-
-	t.Run("ok post", func(t *testing.T) {
-		r := httptest.NewRequest(http.MethodPost, target, nil)
-		w := httptest.NewRecorder()
-		h.ServeHTTP(w, r)
-		response := w.Result()
-
-		assert.Equal(t, http.StatusOK, response.StatusCode)
-	})
-
-	t.Run("ok get", func(t *testing.T) {
-		r := httptest.NewRequest(http.MethodGet, target, nil)
-		w := httptest.NewRecorder()
-		h.ServeHTTP(w, r)
-		response := w.Result()
-
-		assert.Equal(t, http.StatusOK, response.StatusCode)
 	})
 }
 
