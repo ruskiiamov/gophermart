@@ -36,6 +36,7 @@ func createHandler(ua UserAuthorizer, bm BonusManager) http.Handler {
 
 	mux.Handle("/api/user/login", withMiddleware(
 		login(ua),
+		contType(appJSON),
 		post,
 	))
 

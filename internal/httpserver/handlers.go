@@ -4,13 +4,6 @@ import (
 	"net/http"
 )
 
-func login(ua UserAuthorizer) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("login..."))
-	})  
-}
-
 func postOrders(bm BonusManager) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
