@@ -104,6 +104,7 @@ func getOrders(bm bonus.Manager) http.Handler {
 
 		content, err := json.Marshal(resItems)
 
+		w.Header().Add(contTypeHeader, appJSON)
 		w.WriteHeader(http.StatusOK)
 		w.Write(content)
 	})

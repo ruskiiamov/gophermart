@@ -18,6 +18,7 @@ type BonusDataContainer interface {
 type Manager interface {
 	AddOrder(ctx context.Context, userID string, orderID int) error
 	GetOrders(ctx context.Context, userID string) ([]Order, error)
+	GetBalance(ctx context.Context, userID string) (current, withdrawn float64, err error)
 }
 
 type Order struct {
@@ -51,4 +52,9 @@ func (m *manager) AddOrder(ctx context.Context, userID string, orderID int) erro
 func (m *manager) GetOrders(ctx context.Context, userID string) ([]Order, error) {
 	//TODO
 	return []Order{}, nil
+}
+
+func (m *manager) GetBalance(ctx context.Context, userID string) (current, withdrawn float64, err error) {
+	//TODO
+	return 500.5, 42, nil
 }

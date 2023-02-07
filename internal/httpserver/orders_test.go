@@ -236,11 +236,11 @@ func TestGetOrders(t *testing.T) {
 
 			assert.Equal(t, tt.status, response.StatusCode)
 			if tt.content != "" {
+				assert.Equal(t, appJSON, response.Header.Get(contTypeHeader))
 				assert.JSONEq(t, tt.content, string(resContent))
 			} else {
 				assert.Empty(t, resContent)
 			}
-
 		})
 	}
 }

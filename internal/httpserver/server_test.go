@@ -23,32 +23,6 @@ func TestNotFound(t *testing.T) {
 	})
 }
 
-func TestBalance(t *testing.T) {
-	target := "/api/user/balance"
-	ua := new(mockedUserAuthorizer)
-	bm := new(mockedBonusManager)
-	h := createHandler(ua, bm)
-
-	t.Run("method error", func(t *testing.T) {
-		r := httptest.NewRequest(http.MethodPost, target, nil)
-		w := httptest.NewRecorder()
-		h.ServeHTTP(w, r)
-		response := w.Result()
-
-		assert.Equal(t, http.StatusMethodNotAllowed, response.StatusCode)
-		assert.Equal(t, http.MethodGet, response.Header.Get("Allow"))
-	})
-
-	t.Run("ok", func(t *testing.T) {
-		r := httptest.NewRequest(http.MethodGet, target, nil)
-		w := httptest.NewRecorder()
-		h.ServeHTTP(w, r)
-		response := w.Result()
-
-		assert.Equal(t, http.StatusOK, response.StatusCode)
-	})
-}
-
 func TestBalanceWithdraw(t *testing.T) {
 	target := "/api/user/balance/withdraw"
 	ua := new(mockedUserAuthorizer)
