@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ferdypruis/go-luhn"
 	"github.com/rs/zerolog/log"
 	"github.com/ruskiiamov/gophermart/internal/bonus"
 )
@@ -42,11 +41,6 @@ func postOrders(bm bonus.Manager) http.Handler {
 			return
 		}
 
-		if !luhn.Valid(string(orderID)) {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			return
-		}
-
 		ctx, cancel := context.WithTimeout(r.Context(), 1*time.Second)
 		defer cancel()
 
@@ -57,6 +51,10 @@ func postOrders(bm bonus.Manager) http.Handler {
 		}
 		if errors.Is(err, bonus.ErrOrderExists) {
 			w.WriteHeader(http.StatusConflict)
+			return
+		}
+		if errors.Is(err, bonus.ErrLuhnAlgo) {
+			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}
 		if err != nil {

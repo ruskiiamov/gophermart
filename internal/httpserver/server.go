@@ -2,7 +2,6 @@ package httpserver
 
 import (
 	"context"
-	"log"
 	"net"
 	"net/http"
 
@@ -47,10 +46,8 @@ func createHandler(ua user.Authorizer, bm bonus.Manager) http.Handler {
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch r.Method {
 			case http.MethodPost:
-				log.Println("POST")
 				withMiddleware(postOrders(bm), auth(ua)).ServeHTTP(w, r)
 			case http.MethodGet:
-				log.Println("GET")
 				withMiddleware(getOrders(bm), auth(ua)).ServeHTTP(w, r)
 			}
 		}),
@@ -65,6 +62,8 @@ func createHandler(ua user.Authorizer, bm bonus.Manager) http.Handler {
 
 	mux.Handle("/api/user/balance/withdraw", withMiddleware(
 		withdraw(bm),
+		contType(appJSON),
+		auth(ua),
 		post,
 	))
 

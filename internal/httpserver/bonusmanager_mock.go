@@ -25,3 +25,8 @@ func (m *mockedBonusManager) GetBalance(ctx context.Context, userID string) (cur
 	args := m.Called(ctx, userID)
 	return args.Get(0).(float64), args.Get(1).(float64), args.Error(2)
 }
+
+func (m *mockedBonusManager) Withdraw(ctx context.Context, userID string, order int, sum float64) error {
+	args := m.Called(ctx, userID, order, sum)
+	return args.Error(0)
+}

@@ -70,41 +70,28 @@ func TestLogin(t *testing.T) {
 		assert.Empty(t, resContent)
 	})
 
-	t.Run("400 invalid json", func(t *testing.T) {
-		content := `{"login": "test_login","password": "test_pass",}`
-		body := strings.NewReader(content)
-		r := httptest.NewRequest(http.MethodPost, loginURL, body)
-		r.Header.Add(contTypeHeader, appJSON)
+	contents := []string{
+		`{"login": "test_login","password": "test_pass",}`,
+		`{"login": "test_login","pass": "test_pass"}`,
+	}
+	for _, content := range contents {
+		t.Run("400 invalid json", func(t *testing.T) {
+			body := strings.NewReader(content)
+			r := httptest.NewRequest(http.MethodPost, loginURL, body)
+			r.Header.Add(contTypeHeader, appJSON)
 
-		w := httptest.NewRecorder()
-		handler.ServeHTTP(w, r)
-		response := w.Result()
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, r)
+			response := w.Result()
 
-		resContent, err := io.ReadAll(response.Body)
-		assert.NoError(t, err)
+			resContent, err := io.ReadAll(response.Body)
+			assert.NoError(t, err)
 
-		assert.Equal(t, http.StatusBadRequest, response.StatusCode)
-		assert.Empty(t, response.Header.Get(authHeader))
-		assert.Empty(t, string(resContent))
-	})
-
-	t.Run("400 wrong json structure", func(t *testing.T) {
-		content := `{"login": "test_login","pass": "test_pass"}`
-		body := strings.NewReader(content)
-		r := httptest.NewRequest(http.MethodPost, loginURL, body)
-		r.Header.Add(contTypeHeader, appJSON)
-
-		w := httptest.NewRecorder()
-		handler.ServeHTTP(w, r)
-		response := w.Result()
-
-		resContent, err := io.ReadAll(response.Body)
-		assert.NoError(t, err)
-
-		assert.Equal(t, http.StatusBadRequest, response.StatusCode)
-		assert.Empty(t, response.Header.Get(authHeader))
-		assert.Empty(t, resContent)
-	})
+			assert.Equal(t, http.StatusBadRequest, response.StatusCode)
+			assert.Empty(t, response.Header.Get(authHeader))
+			assert.Empty(t, string(resContent))
+		})
+	}
 
 	t.Run("401 wrong login-password pair", func(t *testing.T) {
 		content := `{"login": "test_login","password": "test_pass"}`

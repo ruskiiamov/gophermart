@@ -69,10 +69,9 @@ func TestPostOrders(t *testing.T) {
 	}{
 		{"", http.StatusBadRequest},
 		{"1a2s3d4f5g6h7j8k", http.StatusBadRequest},
-		{"79927398714", http.StatusUnprocessableEntity},
 	}
 	for _, tt := range orderIDtests {
-		t.Run("400, 422", func(t *testing.T) {
+		t.Run("400", func(t *testing.T) {
 			body := strings.NewReader(tt.orderID)
 			r := httptest.NewRequest(http.MethodPost, ordersURL, body)
 			accessToken := "Bearer 1234abcd5678efgh"
@@ -91,6 +90,27 @@ func TestPostOrders(t *testing.T) {
 			assert.Empty(t, resContent)
 		})
 	}
+
+	t.Run("422", func(t *testing.T) {
+		body := strings.NewReader("79927398714")
+		r := httptest.NewRequest(http.MethodPost, ordersURL, body)
+		accessToken := "Bearer 1234abcd5678efgh"
+		r.Header.Add(authHeader, accessToken)
+
+		userID := "aaaa-bbbb-cccc-dddd"
+		ua.On("AuthByToken", mock.Anything, accessToken).Return(userID, nil).Once()
+		bm.On("AddOrder", mock.Anything, userID, 79927398714).Return(bonus.ErrLuhnAlgo).Once()
+
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		response := w.Result()
+
+		resContent, err := io.ReadAll(response.Body)
+		assert.NoError(t, err)
+
+		assert.Equal(t, http.StatusUnprocessableEntity, response.StatusCode)
+		assert.Empty(t, resContent)
+	})
 
 	errorTests := []struct {
 		err    error
