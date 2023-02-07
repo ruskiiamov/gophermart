@@ -1,29 +1,45 @@
 package user
 
-import "context"
+import (
+	"context"
+	"errors"
+)
+
+var (
+	ErrLoginExists   = errors.New("user with that login exists")
+	ErrLoginPassword = errors.New("wrong login-password pair")
+	ErrTokenNotValid = errors.New("wrong access token")
+)
 
 type AuthDataContainer interface {
+	//TODO
 }
 
-type userAuthorizer struct {
+type Authorizer interface {
+	Register(ctx context.Context, login, password string) (accessToken string, err error)
+	Login(ctx context.Context, login, password string) (accessToken string, err error)
+	AuthByToken(ctx context.Context, accessToken string) (userID string, err error)
+}
+
+type authorizer struct {
 	dataContainer AuthDataContainer
 }
 
-func NewAuthorizer(dc AuthDataContainer) *userAuthorizer {
-	return &userAuthorizer{dataContainer: dc}
+func NewAuthorizer(dc AuthDataContainer) Authorizer {
+	return &authorizer{dataContainer: dc}
 }
 
-func (u *userAuthorizer) Register(ctx context.Context, login, password string) (string, error) {
+func (a *authorizer) Register(ctx context.Context, login, password string) (string, error) {
 	//TODO
 	return "Bearer 1234abcd", nil
 }
 
-func (u *userAuthorizer) Login(ctx context.Context, login, password string) (string, error) {
+func (a *authorizer) Login(ctx context.Context, login, password string) (string, error) {
 	//TODO
 	return "Bearer 1234abcd", nil
 }
 
-func (u *userAuthorizer) AuthByToken(ctx context.Context, accessToken string) (userID string, err error) {
+func (a *authorizer) AuthByToken(ctx context.Context, accessToken string) (userID string, err error) {
 	//TODO
 	return "aaaa-bbbb-cccc-dddd", nil
 }

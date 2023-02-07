@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/ruskiiamov/gophermart/internal/user"
 )
 
 const (
@@ -68,7 +70,7 @@ func contType(value string) middleware {
 	}
 }
 
-func auth(ua UserAuthorizer) middleware {
+func auth(ua user.Authorizer) middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			accessToken := r.Header.Get(authHeader)
@@ -81,7 +83,7 @@ func auth(ua UserAuthorizer) middleware {
 			defer cancel()
 
 			userID, err := ua.AuthByToken(ctx, accessToken)
-			if errors.Is(err, ErrTokenNotValid) {
+			if errors.Is(err, user.ErrTokenNotValid) {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}

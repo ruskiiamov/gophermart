@@ -5,6 +5,9 @@ import (
 	"log"
 	"net"
 	"net/http"
+
+	"github.com/ruskiiamov/gophermart/internal/bonus"
+	"github.com/ruskiiamov/gophermart/internal/user"
 )
 
 const (
@@ -13,7 +16,7 @@ const (
 	appJSON        = "application/json"
 )
 
-func NewServer(ctx context.Context, address string, ua UserAuthorizer, bm BonusManager) *http.Server {
+func NewServer(ctx context.Context, address string, ua user.Authorizer, bm bonus.Manager) *http.Server {
 	return &http.Server{
 		Addr:    address,
 		Handler: createHandler(ua, bm),
@@ -23,7 +26,7 @@ func NewServer(ctx context.Context, address string, ua UserAuthorizer, bm BonusM
 	}
 }
 
-func createHandler(ua UserAuthorizer, bm BonusManager) http.Handler {
+func createHandler(ua user.Authorizer, bm bonus.Manager) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", notfound)

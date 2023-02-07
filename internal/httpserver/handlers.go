@@ -2,30 +2,25 @@ package httpserver
 
 import (
 	"net/http"
+
+	"github.com/ruskiiamov/gophermart/internal/bonus"
 )
 
-func getOrders(bm BonusManager) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("GET orders..."))
-	})
-}
-
-func balance(bm BonusManager) http.Handler {
+func balance(bm bonus.Manager) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("balance..."))
 	})
 }
 
-func withdraw(bm BonusManager) http.Handler {
+func withdraw(bm bonus.Manager) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("withdraw..."))
 	})
 }
 
-func withdrawals(bm BonusManager) http.Handler {
+func withdrawals(bm bonus.Manager) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("withdrawals..."))

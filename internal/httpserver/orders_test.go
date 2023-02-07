@@ -7,7 +7,10 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/ruskiiamov/gophermart/internal/bonus"
+	"github.com/ruskiiamov/gophermart/internal/user"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -45,7 +48,7 @@ func TestPostOrders(t *testing.T) {
 			r := httptest.NewRequest(http.MethodPost, ordersURL, nil)
 			if accessToken != "" {
 				r.Header.Add(authHeader, accessToken)
-				ua.On("AuthByToken", mock.Anything, accessToken).Return("", ErrTokenNotValid).Once()
+				ua.On("AuthByToken", mock.Anything, accessToken).Return("", user.ErrTokenNotValid).Once()
 			}
 
 			w := httptest.NewRecorder()
@@ -93,8 +96,8 @@ func TestPostOrders(t *testing.T) {
 		err    error
 		status int
 	}{
-		{ErrUserHasOrder, http.StatusOK},
-		{ErrOrderExists, http.StatusConflict},
+		{bonus.ErrUserHasOrder, http.StatusOK},
+		{bonus.ErrOrderExists, http.StatusConflict},
 		{nil, http.StatusAccepted},
 		{errors.New("test"), http.StatusInternalServerError},
 	}
@@ -125,17 +128,119 @@ func TestPostOrders(t *testing.T) {
 }
 
 func TestGetOrders(t *testing.T) {
-	// target := "/api/user/orders"
-	// ua := new(mockedUserAuthorizer)
-	// bm := new(mockedBonusManager)
-	// handler := createHandler(ua, bm)
+	ua := new(mockedUserAuthorizer)
+	bm := new(mockedBonusManager)
+	handler := createHandler(ua, bm)
 
-	// t.Run("ok get", func(t *testing.T) {
-	// 	r := httptest.NewRequest(http.MethodGet, target, nil)
-	// 	w := httptest.NewRecorder()
-	// 	handler.ServeHTTP(w, r)
-	// 	response := w.Result()
+	accessTokens := []string{"", "451hghjgi7r", "Bearer 1234abcd5678efgh"}
+	for _, accessToken := range accessTokens {
+		t.Run("401", func(t *testing.T) {
+			r := httptest.NewRequest(http.MethodGet, ordersURL, nil)
+			if accessToken != "" {
+				r.Header.Add(authHeader, accessToken)
+				ua.On("AuthByToken", mock.Anything, accessToken).Return("", user.ErrTokenNotValid).Once()
+			}
 
-	// 	assert.Equal(t, http.StatusOK, response.StatusCode)
-	// })
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, r)
+			response := w.Result()
+
+			resContent, err := io.ReadAll(response.Body)
+			assert.NoError(t, err)
+
+			assert.Equal(t, http.StatusUnauthorized, response.StatusCode)
+			assert.Empty(t, resContent)
+		})
+	}
+
+	getTests := []struct {
+		orders  []bonus.Order
+		status  int
+		content string
+	}{
+		{
+			orders:  []bonus.Order{},
+			status:  http.StatusNoContent,
+			content: "",
+		},
+		{
+			orders: []bonus.Order{
+				{
+					ID:      9278923470,
+					UserID:  "aaaa-bbbb-cccc-dddd",
+					Status:  "PROCESSED",
+					Accrual: 500,
+					CreatedAt: func() time.Time {
+						t, _ := time.Parse(time.RFC3339, "2020-12-10T15:15:45+03:00")
+						return t
+					}(),
+				},
+				{
+					ID:      12345678903,
+					UserID:  "aaaa-bbbb-cccc-dddd",
+					Status:  "PROCESSING",
+					Accrual: 0,
+					CreatedAt: func() time.Time {
+						t, _ := time.Parse(time.RFC3339, "2020-12-10T15:12:01+03:00")
+						return t
+					}(),
+				},
+				{
+					ID:      346436439,
+					UserID:  "aaaa-bbbb-cccc-dddd",
+					Status:  "INVALID",
+					Accrual: 0,
+					CreatedAt: func() time.Time {
+						t, _ := time.Parse(time.RFC3339, "2020-12-09T16:09:53+03:00")
+						return t
+					}(),
+				},
+			},
+			status: http.StatusOK,
+			content: `[
+				{
+					"number": "9278923470",
+					"status": "PROCESSED",
+					"accrual": 500,
+					"uploaded_at": "2020-12-10T15:15:45+03:00"
+				},
+				{
+					"number": "12345678903",
+					"status": "PROCESSING",
+					"uploaded_at": "2020-12-10T15:12:01+03:00"
+				},
+				{
+					"number": "346436439",
+					"status": "INVALID",
+					"uploaded_at": "2020-12-09T16:09:53+03:00"
+				}
+			]`,
+		},
+	}
+	for _, tt := range getTests {
+		t.Run("204, 200", func(t *testing.T) {
+			r := httptest.NewRequest(http.MethodGet, ordersURL, nil)
+			accessToken := "Bearer 1234abcd5678efgh"
+			r.Header.Add(authHeader, accessToken)
+
+			userID := "aaaa-bbbb-cccc-dddd"
+			ua.On("AuthByToken", mock.Anything, accessToken).Return(userID, nil).Once()
+			bm.On("GetOrders", mock.Anything, userID).Return(tt.orders, nil).Once()
+
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, r)
+			response := w.Result()
+
+			resContent, err := io.ReadAll(response.Body)
+			assert.NoError(t, err)
+
+			assert.Equal(t, tt.status, response.StatusCode)
+			if tt.content != "" {
+				assert.JSONEq(t, tt.content, string(resContent))
+			} else {
+				assert.Empty(t, resContent)
+			}
+
+		})
+	}
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
+	"github.com/ruskiiamov/gophermart/internal/user"
 )
 
 type registerReq struct {
@@ -16,7 +17,7 @@ type registerReq struct {
 	Password string `json:"password"`
 }
 
-func register(ua UserAuthorizer) http.Handler {
+func register(ua user.Authorizer) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var regReq registerReq
 
@@ -44,7 +45,7 @@ func register(ua UserAuthorizer) http.Handler {
 		defer cancel()
 
 		accessToken, err := ua.Register(ctx, regReq.Login, regReq.Password)
-		if errors.Is(err, ErrLoginExists) {
+		if errors.Is(err, user.ErrLoginExists) {
 			w.WriteHeader(http.StatusConflict)
 			return
 		}

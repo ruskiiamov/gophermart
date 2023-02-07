@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
+	"github.com/ruskiiamov/gophermart/internal/user"
 )
 
 type loginReq struct {
@@ -16,7 +17,7 @@ type loginReq struct {
 	Password string `json:"password"`
 }
 
-func login(ua UserAuthorizer) http.Handler {
+func login(ua user.Authorizer) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var logReq loginReq
 
@@ -44,7 +45,7 @@ func login(ua UserAuthorizer) http.Handler {
 		defer cancel()
 
 		accessToken, err := ua.Login(ctx, logReq.Login, logReq.Password)
-		if errors.Is(err, ErrLoginPassword) {
+		if errors.Is(err, user.ErrLoginPassword) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ruskiiamov/gophermart/internal/user"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -111,7 +112,7 @@ func TestRegister(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, registerURL, body)
 		r.Header.Add(contTypeHeader, appJSON)
 
-		ua.On("Register", mock.Anything, "test_login", "test_pass").Return("", ErrLoginExists).Once()
+		ua.On("Register", mock.Anything, "test_login", "test_pass").Return("", user.ErrLoginExists).Once()
 
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, r)
