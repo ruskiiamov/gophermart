@@ -30,3 +30,8 @@ func (m *mockedBonusManager) Withdraw(ctx context.Context, userID string, order 
 	args := m.Called(ctx, userID, order, sum)
 	return args.Error(0)
 }
+
+func (m *mockedBonusManager) GetWithdrawals(ctx context.Context, userID string) ([]bonus.Withdrawal, error) {
+	args := m.Called(ctx, userID)
+	return args.Get(0).([]bonus.Withdrawal), args.Error(1)
+}

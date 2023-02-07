@@ -69,6 +69,7 @@ func createHandler(ua user.Authorizer, bm bonus.Manager) http.Handler {
 
 	mux.Handle("/api/user/withdrawals", withMiddleware(
 		withdrawals(bm),
+		auth(ua),
 		get,
 	))
 

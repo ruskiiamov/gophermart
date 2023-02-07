@@ -25,6 +25,7 @@ type Manager interface {
 	GetOrders(ctx context.Context, userID string) ([]Order, error)
 	GetBalance(ctx context.Context, userID string) (current, withdrawn float64, err error)
 	Withdraw(ctx context.Context, userID string, order int, sum float64) error
+	GetWithdrawals(ctx context.Context, userID string) ([]Withdrawal, error)
 }
 
 type Order struct {
@@ -73,4 +74,9 @@ func (m *manager) GetBalance(ctx context.Context, userID string) (current, withd
 func (m *manager) Withdraw(ctx context.Context, userID string, order int, sum float64) error {
 	//TODO
 	return nil
+}
+
+func (m *manager) GetWithdrawals(ctx context.Context, userID string) ([]Withdrawal, error) {
+	//TODO
+	return []Withdrawal{}, nil
 }
