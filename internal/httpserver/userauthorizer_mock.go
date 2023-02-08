@@ -10,9 +10,9 @@ type mockedUserAuthorizer struct {
 	mock.Mock
 }
 
-func (m *mockedUserAuthorizer) Register(ctx context.Context, login, password string) (string, error) {
+func (m *mockedUserAuthorizer) Register(ctx context.Context, login, password string) error {
 	args := m.Called(ctx, login, password)
-	return args.String(0), args.Error(1)
+	return args.Error(0)
 }
 
 func (m *mockedUserAuthorizer) Login(ctx context.Context, login, password string) (string, error) {

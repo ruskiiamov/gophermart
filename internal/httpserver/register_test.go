@@ -36,7 +36,8 @@ func TestRegister(t *testing.T) {
 		r.Header.Add(contTypeHeader, appJSON)
 
 		accessToken := "Bearer XaSCghyfce324G5ef53dbhU643"
-		ua.On("Register", mock.Anything, "test_login", "test_pass").Return(accessToken, nil).Once()
+		ua.On("Register", mock.Anything, "test_login", "test_pass").Return(nil).Once()
+		ua.On("Login", mock.Anything, "test_login", "test_pass").Return(accessToken, nil).Once()
 
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, r)
@@ -99,7 +100,7 @@ func TestRegister(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, registerURL, body)
 		r.Header.Add(contTypeHeader, appJSON)
 
-		ua.On("Register", mock.Anything, "test_login", "test_pass").Return("", user.ErrLoginExists).Once()
+		ua.On("Register", mock.Anything, "test_login", "test_pass").Return(user.ErrLoginExists).Once()
 
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, r)

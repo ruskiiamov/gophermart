@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog/log"
 	"github.com/ruskiiamov/gophermart/internal/user"
 )
 
@@ -88,6 +89,7 @@ func auth(ua user.Authorizer) middleware {
 				return
 			}
 			if err != nil {
+				log.Error().Msgf("auth by token error: %s", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
