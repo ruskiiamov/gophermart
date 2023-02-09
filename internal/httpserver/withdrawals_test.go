@@ -52,17 +52,17 @@ func TestWithdrawals(t *testing.T) {
 	}
 
 	tests := []struct {
-		withdrawals []bonus.Withdrawal
+		withdrawals []*bonus.Withdrawal
 		status      int
 		content     string
 	}{
 		{
-			withdrawals: []bonus.Withdrawal{},
+			withdrawals: []*bonus.Withdrawal{},
 			status:      http.StatusNoContent,
 			content:     "",
 		},
 		{
-			withdrawals: []bonus.Withdrawal{
+			withdrawals: []*bonus.Withdrawal{
 				{
 					ID:     2377225624,
 					UserID: "aaaa-bbbb-cccc-dddd",

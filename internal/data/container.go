@@ -53,3 +53,8 @@ func (c *Container) GetOrder(ctx context.Context, orderID int) (*bonus.Order, er
 	//TODO
 	return &bonus.Order{}, nil
 }
+
+func (c *Container) GetOrders(ctx context.Context, userID string) ([]*bonus.Order, error) {
+	//TODO
+	return []*bonus.Order{}, nil
+}

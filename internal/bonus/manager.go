@@ -20,14 +20,15 @@ var (
 type BonusDataContainer interface {
 	CreateOrder(ctx context.Context, userID string, orderID int) (*Order, error)
 	GetOrder(ctx context.Context, orderID int) (*Order, error)
+	GetOrders(ctx context.Context, userID string) ([]*Order, error)
 }
 
 type Manager interface {
 	AddOrder(ctx context.Context, userID string, orderID int) error
-	GetOrders(ctx context.Context, userID string) ([]Order, error)
+	GetOrders(ctx context.Context, userID string) ([]*Order, error)
 	GetBalance(ctx context.Context, userID string) (current, withdrawn float64, err error)
 	Withdraw(ctx context.Context, userID string, order int, sum float64) error
-	GetWithdrawals(ctx context.Context, userID string) ([]Withdrawal, error)
+	GetWithdrawals(ctx context.Context, userID string) ([]*Withdrawal, error)
 }
 
 type Order struct {
@@ -78,9 +79,13 @@ func (m *manager) AddOrder(ctx context.Context, userID string, orderID int) erro
 	return ErrOrderExists
 }
 
-func (m *manager) GetOrders(ctx context.Context, userID string) ([]Order, error) {
-	//TODO
-	return []Order{}, nil
+func (m *manager) GetOrders(ctx context.Context, userID string) ([]*Order, error) {
+	orders, err := m.dc.GetOrders(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get orders error: %w", err)
+	}
+
+	return orders, nil
 }
 
 func (m *manager) GetBalance(ctx context.Context, userID string) (current, withdrawn float64, err error) {
@@ -93,7 +98,7 @@ func (m *manager) Withdraw(ctx context.Context, userID string, order int, sum fl
 	return nil
 }
 
-func (m *manager) GetWithdrawals(ctx context.Context, userID string) ([]Withdrawal, error) {
+func (m *manager) GetWithdrawals(ctx context.Context, userID string) ([]*Withdrawal, error) {
 	//TODO
-	return []Withdrawal{}, nil
+	return []*Withdrawal{}, nil
 }

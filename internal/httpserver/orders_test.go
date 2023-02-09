@@ -175,17 +175,17 @@ func TestGetOrders(t *testing.T) {
 	}
 
 	getTests := []struct {
-		orders  []bonus.Order
+		orders  []*bonus.Order
 		status  int
 		content string
 	}{
 		{
-			orders:  []bonus.Order{},
+			orders:  []*bonus.Order{},
 			status:  http.StatusNoContent,
 			content: "",
 		},
 		{
-			orders: []bonus.Order{
+			orders: []*bonus.Order{
 				{
 					ID:      9278923470,
 					UserID:  "aaaa-bbbb-cccc-dddd",

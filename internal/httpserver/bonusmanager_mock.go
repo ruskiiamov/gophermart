@@ -16,9 +16,9 @@ func (m *mockedBonusManager) AddOrder(ctx context.Context, userID string, orderI
 	return args.Error(0)
 }
 
-func (m *mockedBonusManager) GetOrders(ctx context.Context, userID string) ([]bonus.Order, error) {
+func (m *mockedBonusManager) GetOrders(ctx context.Context, userID string) ([]*bonus.Order, error) {
 	args := m.Called(ctx, userID)
-	return args.Get(0).([]bonus.Order), args.Error(1)
+	return args.Get(0).([]*bonus.Order), args.Error(1)
 }
 
 func (m *mockedBonusManager) GetBalance(ctx context.Context, userID string) (current, withdrawn float64, err error) {
@@ -31,7 +31,7 @@ func (m *mockedBonusManager) Withdraw(ctx context.Context, userID string, order 
 	return args.Error(0)
 }
 
-func (m *mockedBonusManager) GetWithdrawals(ctx context.Context, userID string) ([]bonus.Withdrawal, error) {
+func (m *mockedBonusManager) GetWithdrawals(ctx context.Context, userID string) ([]*bonus.Withdrawal, error) {
 	args := m.Called(ctx, userID)
-	return args.Get(0).([]bonus.Withdrawal), args.Error(1)
+	return args.Get(0).([]*bonus.Withdrawal), args.Error(1)
 }

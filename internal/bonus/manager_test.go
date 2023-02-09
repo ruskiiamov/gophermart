@@ -84,3 +84,62 @@ func TestAddOrder(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestGetOrders(t *testing.T) {
+	dc := new(mockerBonusDataContainer)
+	m := NewManager(dc)
+
+	tests := []struct {
+		orders []*Order
+	}{
+		{
+			orders: []*Order{},
+		},
+		{
+			orders: []*Order{
+				{
+					ID:      9278923470,
+					UserID:  "aaaa-bbbb-cccc-dddd",
+					Status:  "PROCESSED",
+					Accrual: 500,
+					CreatedAt: func() time.Time {
+						t, _ := time.Parse(time.RFC3339, "2020-12-10T15:15:45+03:00")
+						return t
+					}(),
+				},
+				{
+					ID:      12345678903,
+					UserID:  "aaaa-bbbb-cccc-dddd",
+					Status:  "PROCESSING",
+					Accrual: 0,
+					CreatedAt: func() time.Time {
+						t, _ := time.Parse(time.RFC3339, "2020-12-10T15:12:01+03:00")
+						return t
+					}(),
+				},
+				{
+					ID:      346436439,
+					UserID:  "aaaa-bbbb-cccc-dddd",
+					Status:  "INVALID",
+					Accrual: 0,
+					CreatedAt: func() time.Time {
+						t, _ := time.Parse(time.RFC3339, "2020-12-09T16:09:53+03:00")
+						return t
+					}(),
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run("name", func(t *testing.T) {
+			userID := "aaaa-bbbb-cccc-dddd"
+
+			dc.On("GetOrders", mock.Anything, userID).Return(tt.orders, nil).Once()
+
+			orders, err := m.GetOrders(context.Background(), userID)
+
+			assert.NoError(t, err)
+			assert.ElementsMatch(t, orders, tt.orders)
+		})
+	}
+}
