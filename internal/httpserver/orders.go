@@ -36,7 +36,7 @@ func postOrders(bm bonus.Manager) http.Handler {
 		}
 
 		intOrderID, err := strconv.Atoi(string(orderID))
-		if err != nil {
+		if err != nil || intOrderID <= 0 {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}

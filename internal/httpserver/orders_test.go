@@ -69,6 +69,7 @@ func TestPostOrders(t *testing.T) {
 	}{
 		{"", http.StatusBadRequest},
 		{"1a2s3d4f5g6h7j8k", http.StatusBadRequest},
+		{"-79927398713", http.StatusBadRequest},
 	}
 	for _, tt := range orderIDtests {
 		t.Run("400", func(t *testing.T) {

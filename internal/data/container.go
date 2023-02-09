@@ -43,3 +43,13 @@ func (c *Container) GetUser(ctx context.Context, login string) (*user.User, erro
 	//TODO
 	return nil, user.ErrLoginNotFound
 }
+
+func (c *Container) CreateOrder(ctx context.Context, userID string, orderID int) (*bonus.Order, error) {
+	//TODO
+	return nil, bonus.ErrOrderExists
+}
+
+func (c *Container) GetOrder(ctx context.Context, orderID int) (*bonus.Order, error) {
+	//TODO
+	return &bonus.Order{}, nil
+}

@@ -3,6 +3,7 @@ package bonus
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -17,7 +18,8 @@ var (
 )
 
 type BonusDataContainer interface {
-	//TODO
+	CreateOrder(ctx context.Context, userID string, orderID int) (*Order, error)
+	GetOrder(ctx context.Context, orderID int) (*Order, error)
 }
 
 type Manager interface {
@@ -44,21 +46,36 @@ type Withdrawal struct {
 }
 
 type manager struct {
-	dataContainer BonusDataContainer
+	dc BonusDataContainer
 }
 
 func NewManager(dc BonusDataContainer) Manager {
-	return &manager{dataContainer: dc}
+	return &manager{dc: dc}
 }
 
 func (m *manager) AddOrder(ctx context.Context, userID string, orderID int) error {
-	//TODO
-
 	if !luhn.Valid(strconv.Itoa(orderID)) {
 		return ErrLuhnAlgo
 	}
 
-	return nil
+	order, err := m.dc.CreateOrder(ctx, userID, orderID)
+	if err == nil {
+		//TODO add Task to Queue
+		return nil
+	}
+
+	if errors.Is(err, ErrOrderExists) {
+		order, err = m.dc.GetOrder(ctx, orderID)
+	}
+	if err != nil {
+		return fmt.Errorf("create order error: %w", err)
+	}
+
+	if order.UserID == userID {
+		return ErrUserHasOrder
+	}
+
+	return ErrOrderExists
 }
 
 func (m *manager) GetOrders(ctx context.Context, userID string) ([]Order, error) {
