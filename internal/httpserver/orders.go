@@ -95,7 +95,7 @@ func getOrders(bm bonus.Manager) http.Handler {
 			resItems = append(resItems, orderRes{
 				Number:     strconv.Itoa(order.ID),
 				Status:     order.Status,
-				Accrual:    order.Accrual,
+				Accrual:    float64(order.Accrual) / 100,
 				UploadedAt: order.CreatedAt.Format(time.RFC3339),
 			})
 		}

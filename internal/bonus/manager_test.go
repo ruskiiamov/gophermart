@@ -138,8 +138,31 @@ func TestGetOrders(t *testing.T) {
 
 			orders, err := m.GetOrders(context.Background(), userID)
 
+			dc.AssertExpectations(t)
+
 			assert.NoError(t, err)
 			assert.ElementsMatch(t, orders, tt.orders)
 		})
 	}
+}
+
+func TestGetBalance(t *testing.T) {
+	dc := new(mockerBonusDataContainer)
+	m := NewManager(dc)
+
+	t.Run("ddd", func(t *testing.T) {
+		userID := "aaaa-bbbb-cccc-dddd"
+		current := 50050
+		withdrawn := 4200
+
+		dc.On("GetBalance", mock.Anything, userID).Return(current, withdrawn, nil)
+
+		c, w, err := m.GetBalance(context.Background(), userID)
+
+		dc.AssertExpectations(t)
+
+		assert.NoError(t, err)
+		assert.Equal(t, current, c)
+		assert.Equal(t, withdrawn, w)
+	})
 }

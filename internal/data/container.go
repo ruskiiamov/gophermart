@@ -58,3 +58,8 @@ func (c *Container) GetOrders(ctx context.Context, userID string) ([]*bonus.Orde
 	//TODO
 	return []*bonus.Order{}, nil
 }
+
+func (c *Container) GetBalance(ctx context.Context, userID string) (current, withdrawn int, err error) {
+	//TODO
+	return 1000, 2000, nil
+}

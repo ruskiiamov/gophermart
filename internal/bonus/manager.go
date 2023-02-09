@@ -21,13 +21,14 @@ type BonusDataContainer interface {
 	CreateOrder(ctx context.Context, userID string, orderID int) (*Order, error)
 	GetOrder(ctx context.Context, orderID int) (*Order, error)
 	GetOrders(ctx context.Context, userID string) ([]*Order, error)
+	GetBalance(ctx context.Context, userID string) (current, withdrawn int, err error)
 }
 
 type Manager interface {
 	AddOrder(ctx context.Context, userID string, orderID int) error
 	GetOrders(ctx context.Context, userID string) ([]*Order, error)
-	GetBalance(ctx context.Context, userID string) (current, withdrawn float64, err error)
-	Withdraw(ctx context.Context, userID string, order int, sum float64) error
+	GetBalance(ctx context.Context, userID string) (current, withdrawn int, err error)
+	Withdraw(ctx context.Context, userID string, order int, sum int) error
 	GetWithdrawals(ctx context.Context, userID string) ([]*Withdrawal, error)
 }
 
@@ -35,14 +36,14 @@ type Order struct {
 	ID        int
 	UserID    string
 	Status    string
-	Accrual   float64
+	Accrual   int
 	CreatedAt time.Time
 }
 
 type Withdrawal struct {
 	ID        int
 	UserID    string
-	Sum       float64
+	Sum       int
 	CreatedAt time.Time
 }
 
@@ -88,12 +89,16 @@ func (m *manager) GetOrders(ctx context.Context, userID string) ([]*Order, error
 	return orders, nil
 }
 
-func (m *manager) GetBalance(ctx context.Context, userID string) (current, withdrawn float64, err error) {
-	//TODO
-	return 500.5, 42, nil
+func (m *manager) GetBalance(ctx context.Context, userID string) (current, withdrawn int, err error) {
+	current, withdrawn, err = m.dc.GetBalance(ctx, userID)
+	if err != nil {
+		return 0, 0, fmt.Errorf("get balance error: %w", err)
+	}
+
+	return current, withdrawn, nil
 }
 
-func (m *manager) Withdraw(ctx context.Context, userID string, order int, sum float64) error {
+func (m *manager) Withdraw(ctx context.Context, userID string, order int, sum int) error {
 	//TODO
 	return nil
 }

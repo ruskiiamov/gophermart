@@ -190,7 +190,7 @@ func TestGetOrders(t *testing.T) {
 					ID:      9278923470,
 					UserID:  "aaaa-bbbb-cccc-dddd",
 					Status:  "PROCESSED",
-					Accrual: 500,
+					Accrual: 50000,
 					CreatedAt: func() time.Time {
 						t, _ := time.Parse(time.RFC3339, "2020-12-10T15:15:45+03:00")
 						return t

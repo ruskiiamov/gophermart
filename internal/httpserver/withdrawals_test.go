@@ -66,7 +66,7 @@ func TestWithdrawals(t *testing.T) {
 				{
 					ID:     2377225624,
 					UserID: "aaaa-bbbb-cccc-dddd",
-					Sum:    500,
+					Sum:    50000,
 					CreatedAt: func() time.Time {
 						t, _ := time.Parse(time.RFC3339, "2020-12-09T16:09:57+03:00")
 						return t

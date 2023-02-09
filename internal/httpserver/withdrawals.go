@@ -44,7 +44,7 @@ func withdrawals(bm bonus.Manager) http.Handler {
 		for _, withdrawal := range withdrawals {
 			resItems = append(resItems, withdrawRes{
 				Order:       strconv.Itoa(withdrawal.ID),
-				Sum:         withdrawal.Sum,
+				Sum:         float64(withdrawal.Sum) / 100,
 				ProcessedAt: withdrawal.CreatedAt.Format(time.RFC3339),
 			})
 		}

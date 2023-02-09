@@ -34,8 +34,8 @@ func balance(bm bonus.Manager) http.Handler {
 		}
 
 		res := balanceRes{
-			Current:   current,
-			Withdrawn: withdrawn,
+			Current:   float64(current) / 100,
+			Withdrawn: float64(withdrawn) / 100,
 		}
 
 		content, err := json.Marshal(res)

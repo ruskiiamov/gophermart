@@ -55,8 +55,8 @@ func TestBalance(t *testing.T) {
 		r.Header.Add(authHeader, accessToken)
 
 		userID := "aaaa-bbbb-cccc-dddd"
-		current := float64(500.5)
-		withdrawn := float64(42)
+		current := 50050
+		withdrawn := 4200
 		ua.On("AuthByToken", mock.Anything, accessToken).Return(userID, nil).Once()
 		bm.On("GetBalance", mock.Anything, userID).Return(current, withdrawn, nil).Once()
 

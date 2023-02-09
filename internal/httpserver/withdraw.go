@@ -57,7 +57,7 @@ func withdraw(bm bonus.Manager) http.Handler {
 		ctx, cancel := context.WithTimeout(r.Context(), 1*time.Second)
 		defer cancel()
 
-		err = bm.Withdraw(ctx, userID, intOrder, withdraw.Sum)
+		err = bm.Withdraw(ctx, userID, intOrder, int(withdraw.Sum*100))
 		log.Printf("error %s", err)
 		if errors.Is(err, bonus.ErrNotEnough) {
 			w.WriteHeader(http.StatusPaymentRequired)

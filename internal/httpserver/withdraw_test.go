@@ -119,7 +119,7 @@ func TestWithdraw(t *testing.T) {
 
 			userID := "aaaa-bbbb-cccc-dddd"
 			order := 2377225624
-			sum := float64(751)
+			sum := 75100
 			ua.On("AuthByToken", mock.Anything, accessToken).Return(userID, nil).Once()
 			bm.On("Withdraw", mock.Anything, userID, order, sum).Return(tt.err).Once()
 

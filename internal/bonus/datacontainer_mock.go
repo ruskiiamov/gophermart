@@ -24,3 +24,8 @@ func (m *mockerBonusDataContainer) GetOrders(ctx context.Context, userID string)
 	args := m.Called(ctx, userID)
 	return args.Get(0).([]*Order), args.Error(1)
 }
+
+func (m *mockerBonusDataContainer) GetBalance(ctx context.Context, userID string) (current, withdrawn int, err error) {
+	args := m.Called(ctx, userID)
+	return args.Int(0), args.Int(1), args.Error(2)
+}
