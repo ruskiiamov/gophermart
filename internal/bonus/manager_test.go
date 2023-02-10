@@ -10,7 +10,7 @@ import (
 )
 
 func TestAddOrder(t *testing.T) {
-	dc := new(mockerBonusDataContainer)
+	dc := new(mockedBonusDataContainer)
 	m := NewManager(dc)
 
 	t.Run("luhn", func(t *testing.T) {
@@ -86,7 +86,7 @@ func TestAddOrder(t *testing.T) {
 }
 
 func TestGetOrders(t *testing.T) {
-	dc := new(mockerBonusDataContainer)
+	dc := new(mockedBonusDataContainer)
 	m := NewManager(dc)
 
 	tests := []struct {
@@ -147,7 +147,7 @@ func TestGetOrders(t *testing.T) {
 }
 
 func TestGetBalance(t *testing.T) {
-	dc := new(mockerBonusDataContainer)
+	dc := new(mockedBonusDataContainer)
 	m := NewManager(dc)
 
 	t.Run("balance", func(t *testing.T) {
@@ -168,7 +168,7 @@ func TestGetBalance(t *testing.T) {
 }
 
 func TestWithdraw(t *testing.T) {
-	dc := new(mockerBonusDataContainer)
+	dc := new(mockedBonusDataContainer)
 	m := NewManager(dc)
 
 	t.Run("luhn", func(t *testing.T) {
@@ -211,6 +211,22 @@ func TestWithdraw(t *testing.T) {
 		assert.ErrorIs(t, err, ErrNotEnough)
 	})
 
+	t.Run("withdraw exists", func(t *testing.T) {
+		var ord *Order
+		orderID := 79927398713
+		userID := "aaaa-bbbb-cccc-dddd"
+		sum := 40000
+
+		dc.On("GetOrder", mock.Anything, orderID).Return(ord, ErrOrderNotFound).Once()
+		dc.On("GetBalance", mock.Anything, userID).Return(50050, 4200, nil).Once()
+		dc.On("CreateWithdraw", mock.Anything, userID, orderID, sum).Return(ErrOrderExists).Once()
+
+		err := m.Withdraw(context.Background(), userID, orderID, sum)
+
+		dc.AssertExpectations(t)
+		assert.ErrorIs(t, err, ErrOrderExists)
+	})
+
 	t.Run("ok", func(t *testing.T) {
 		var ord *Order
 		orderID := 79927398713
@@ -226,4 +242,45 @@ func TestWithdraw(t *testing.T) {
 		dc.AssertExpectations(t)
 		assert.NoError(t, err)
 	})
+}
+
+func TestGetWithdrawals(t *testing.T) {
+	dc := new(mockedBonusDataContainer)
+	m := NewManager(dc)
+
+	tests := []struct {
+		withdrawals []*Withdrawal
+	}{
+		{
+			withdrawals: []*Withdrawal{},
+		},
+		{
+			withdrawals: []*Withdrawal{
+				{
+					ID:        2377225624,
+					UserID:    "aaaa-bbbb-cccc-dddd",
+					Sum:       15200,
+					CreatedAt: time.Now(),
+				},
+				{
+					ID:        2377225615,
+					UserID:    "aaaa-bbbb-cccc-dddd",
+					Sum:       2800,
+					CreatedAt: time.Now(),
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+			userID := "aaaa-bbbb-cccc-dddd"
+
+			dc.On("GetWithdrawals", mock.Anything, userID).Return(tt.withdrawals, nil).Once()
+			withdrawals, err := m.GetWithdrawals(context.Background(), userID)
+
+			dc.AssertExpectations(t)
+			assert.NoError(t, err)
+			assert.ElementsMatch(t, withdrawals, tt.withdrawals)
+		})
+	}
 }

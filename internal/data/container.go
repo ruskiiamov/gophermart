@@ -68,3 +68,8 @@ func (c *Container) CreateWithdraw(ctx context.Context, userID string, orderID, 
 	//TODO
 	return nil
 }
+
+func (c *Container) GetWithdrawals(ctx context.Context, userID string) ([]*bonus.Withdrawal, error) {
+	//TODO
+	return []*bonus.Withdrawal{}, nil
+}

@@ -25,6 +25,7 @@ type BonusDataContainer interface {
 	GetOrders(ctx context.Context, userID string) ([]*Order, error)
 	GetBalance(ctx context.Context, userID string) (current, withdrawn int, err error)
 	CreateWithdraw(ctx context.Context, userID string, orderID, sum int) error
+	GetWithdrawals(ctx context.Context, userID string) ([]*Withdrawal, error)
 }
 
 type Manager interface {
@@ -125,6 +126,9 @@ func (m *manager) Withdraw(ctx context.Context, userID string, order int, sum in
 	}
 
 	err = m.dc.CreateWithdraw(context.Background(), userID, order, sum)
+	if errors.Is(err, ErrOrderExists) {
+		return err
+	}
 	if err != nil {
 		return fmt.Errorf("create withdraw error: %w", err)
 	}
@@ -133,6 +137,10 @@ func (m *manager) Withdraw(ctx context.Context, userID string, order int, sum in
 }
 
 func (m *manager) GetWithdrawals(ctx context.Context, userID string) ([]*Withdrawal, error) {
-	//TODO
-	return []*Withdrawal{}, nil
+	withdrawals, err := m.dc.GetWithdrawals(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get withdrawals error: %w", err)
+	}
+
+	return withdrawals, nil
 }
