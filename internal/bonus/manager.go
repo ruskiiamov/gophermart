@@ -11,10 +11,12 @@ import (
 )
 
 var (
-	ErrUserHasOrder = errors.New("user already has that order")
-	ErrOrderExists  = errors.New("order exists")
-	ErrLuhnAlgo     = errors.New("luhn check fail")
-	ErrNotEnough    = errors.New("not enough balance")
+	ErrUserHasOrder  = errors.New("user already has that order")
+	ErrOrderExists   = errors.New("order exists")
+	ErrLuhnAlgo      = errors.New("luhn check fail")
+	ErrNotEnough     = errors.New("not enough balance")
+	ErrOrderNotFound = errors.New("order not found")
+	ErrWrongSum      = errors.New("wrong sum")
 )
 
 type BonusDataContainer interface {
@@ -22,6 +24,7 @@ type BonusDataContainer interface {
 	GetOrder(ctx context.Context, orderID int) (*Order, error)
 	GetOrders(ctx context.Context, userID string) ([]*Order, error)
 	GetBalance(ctx context.Context, userID string) (current, withdrawn int, err error)
+	CreateWithdraw(ctx context.Context, userID string, orderID, sum int) error
 }
 
 type Manager interface {
@@ -99,7 +102,33 @@ func (m *manager) GetBalance(ctx context.Context, userID string) (current, withd
 }
 
 func (m *manager) Withdraw(ctx context.Context, userID string, order int, sum int) error {
-	//TODO
+	if !luhn.Valid(strconv.Itoa(order)) {
+		return ErrLuhnAlgo
+	}
+
+	if sum <= 0 {
+		return ErrWrongSum
+	}
+
+	_, err := m.dc.GetOrder(ctx, order)
+	if err == nil {
+		return ErrOrderExists
+	}
+
+	current, _, err := m.dc.GetBalance(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("get balance error: %w", err)
+	}
+
+	if current < sum {
+		return ErrNotEnough
+	}
+
+	err = m.dc.CreateWithdraw(context.Background(), userID, order, sum)
+	if err != nil {
+		return fmt.Errorf("create withdraw error: %w", err)
+	}
+
 	return nil
 }
 

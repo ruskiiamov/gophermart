@@ -29,3 +29,8 @@ func (m *mockerBonusDataContainer) GetBalance(ctx context.Context, userID string
 	args := m.Called(ctx, userID)
 	return args.Int(0), args.Int(1), args.Error(2)
 }
+
+func (m *mockerBonusDataContainer) CreateWithdraw(ctx context.Context, userID string, orderID, sum int) error {
+	args := m.Called(ctx, userID, orderID, sum)
+	return args.Error(0)
+}

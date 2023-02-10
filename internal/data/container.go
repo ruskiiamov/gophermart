@@ -63,3 +63,8 @@ func (c *Container) GetBalance(ctx context.Context, userID string) (current, wit
 	//TODO
 	return 1000, 2000, nil
 }
+
+func (c *Container) CreateWithdraw(ctx context.Context, userID string, orderID, sum int) error {
+	//TODO
+	return nil
+}

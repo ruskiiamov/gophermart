@@ -150,7 +150,7 @@ func TestGetBalance(t *testing.T) {
 	dc := new(mockerBonusDataContainer)
 	m := NewManager(dc)
 
-	t.Run("ddd", func(t *testing.T) {
+	t.Run("balance", func(t *testing.T) {
 		userID := "aaaa-bbbb-cccc-dddd"
 		current := 50050
 		withdrawn := 4200
@@ -164,5 +164,66 @@ func TestGetBalance(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, current, c)
 		assert.Equal(t, withdrawn, w)
+	})
+}
+
+func TestWithdraw(t *testing.T) {
+	dc := new(mockerBonusDataContainer)
+	m := NewManager(dc)
+
+	t.Run("luhn", func(t *testing.T) {
+		err := m.Withdraw(context.Background(), "aaa-bbb-ccc", 79927398714, 5000)
+		assert.ErrorIs(t, err, ErrLuhnAlgo)
+	})
+
+	t.Run("negative sum", func(t *testing.T) {
+		err := m.Withdraw(context.Background(), "aaa-bbb-ccc", 79927398713, -5000)
+		assert.ErrorIs(t, err, ErrWrongSum)
+	})
+
+	t.Run("order exists", func(t *testing.T) {
+		orderID := 79927398713
+		order := &Order{
+			ID:        orderID,
+			UserID:    "ddd-eee-fff",
+			Status:    "NEW",
+			CreatedAt: time.Now(),
+		}
+
+		dc.On("GetOrder", mock.Anything, orderID).Return(order, nil).Once()
+		err := m.Withdraw(context.Background(), "aaa-bbb-ccc", orderID, 5000)
+
+		dc.AssertExpectations(t)
+		assert.ErrorIs(t, err, ErrOrderExists)
+	})
+
+	t.Run("not enough", func(t *testing.T) {
+		var ord *Order
+		orderID := 79927398713
+		userID := "aaaa-bbbb-cccc-dddd"
+
+		dc.On("GetOrder", mock.Anything, orderID).Return(ord, ErrOrderNotFound).Once()
+		dc.On("GetBalance", mock.Anything, userID).Return(50050, 4200, nil).Once()
+
+		err := m.Withdraw(context.Background(), userID, orderID, 70000)
+
+		dc.AssertExpectations(t)
+		assert.ErrorIs(t, err, ErrNotEnough)
+	})
+
+	t.Run("ok", func(t *testing.T) {
+		var ord *Order
+		orderID := 79927398713
+		userID := "aaaa-bbbb-cccc-dddd"
+		sum := 40000
+
+		dc.On("GetOrder", mock.Anything, orderID).Return(ord, ErrOrderNotFound).Once()
+		dc.On("GetBalance", mock.Anything, userID).Return(50050, 4200, nil).Once()
+		dc.On("CreateWithdraw", mock.Anything, userID, orderID, sum).Return(nil).Once()
+
+		err := m.Withdraw(context.Background(), userID, orderID, sum)
+
+		dc.AssertExpectations(t)
+		assert.NoError(t, err)
 	})
 }

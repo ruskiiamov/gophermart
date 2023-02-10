@@ -49,7 +49,7 @@ func withdraw(bm bonus.Manager) http.Handler {
 		}
 
 		intOrder, err := strconv.Atoi(withdraw.Order)
-		if err != nil {
+		if err != nil || intOrder <= 0 {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -59,11 +59,15 @@ func withdraw(bm bonus.Manager) http.Handler {
 
 		err = bm.Withdraw(ctx, userID, intOrder, int(withdraw.Sum*100))
 		log.Printf("error %s", err)
+		if errors.Is(err, bonus.ErrWrongSum) {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		if errors.Is(err, bonus.ErrNotEnough) {
 			w.WriteHeader(http.StatusPaymentRequired)
 			return
 		}
-		if errors.Is(err, bonus.ErrLuhnAlgo) {
+		if errors.Is(err, bonus.ErrLuhnAlgo) || errors.Is(err, bonus.ErrOrderExists) {
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}

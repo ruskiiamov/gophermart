@@ -107,6 +107,8 @@ func TestWithdraw(t *testing.T) {
 		{nil, http.StatusOK},
 		{bonus.ErrNotEnough, http.StatusPaymentRequired},
 		{bonus.ErrLuhnAlgo, http.StatusUnprocessableEntity},
+		{bonus.ErrOrderExists, http.StatusUnprocessableEntity},
+		{bonus.ErrWrongSum, http.StatusBadRequest},
 		{errors.New("test"), http.StatusInternalServerError},
 	}
 	for _, tt := range errTests {
