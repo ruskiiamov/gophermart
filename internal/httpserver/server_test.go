@@ -11,7 +11,8 @@ import (
 func TestNotFound(t *testing.T) {
 	ua := new(mockedUserAuthorizer)
 	bm := new(mockedBonusManager)
-	h := createHandler(ua, bm)
+	qc := new(mockedQueueController)
+	h := createHandler(ua, bm, qc)
 
 	t.Run("not found", func(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, "/", nil)

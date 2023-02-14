@@ -11,11 +11,11 @@ import (
 const retries = 3
 
 type Worker struct {
-	qc *Controller
+	qc Controller
 	bm bonus.Manager
 }
 
-func NewWorker(qc *Controller, bm bonus.Manager) *Worker {
+func NewWorker(qc Controller, bm bonus.Manager) *Worker {
 	return &Worker{
 		qc: qc,
 		bm: bm,

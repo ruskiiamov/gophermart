@@ -13,18 +13,23 @@ type Task struct {
 	tries   int
 }
 
-func NewTask(orderID int, status string) *Task {
+func NewTask(orderID int) *Task {
 	return &Task{orderID: orderID}
 }
 
-type Controller struct {
+type Controller interface {
+	Push(t *Task)
+	PopWait() *Task
+}
+
+type controller struct {
 	arr  []*Task
 	mu   sync.Mutex
 	cond *sync.Cond
 }
 
-func NewController(ctx context.Context, bm bonus.Manager) (*Controller, error) {
-	c := &Controller{}
+func NewController(ctx context.Context, bm bonus.Manager) (*controller, error) {
+	c := &controller{}
 	c.cond = sync.NewCond(&c.mu)
 
 	orders, err := bm.GetNotFinalOrders(ctx)
@@ -33,13 +38,13 @@ func NewController(ctx context.Context, bm bonus.Manager) (*Controller, error) {
 	}
 
 	for _, order := range orders {
-		c.arr = append(c.arr, NewTask(order.ID, order.Status))
+		c.arr = append(c.arr, NewTask(order.ID))
 	}
 
 	return c, nil
 }
 
-func (c *Controller) Push(t *Task) {
+func (c *controller) Push(t *Task) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -48,7 +53,7 @@ func (c *Controller) Push(t *Task) {
 	c.cond.Signal()
 }
 
-func (c *Controller) PopWait() *Task {
+func (c *controller) PopWait() *Task {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

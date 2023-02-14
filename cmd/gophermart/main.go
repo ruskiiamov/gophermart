@@ -75,7 +75,7 @@ func main() {
 		go w.Loop(ctx)
 	}
 
-	server := httpserver.NewServer(ctx, cfg.RunAddress, userAuthorizer, bonusManager)
+	server := httpserver.NewServer(ctx, cfg.RunAddress, userAuthorizer, bonusManager, queueController)
 
 	g, gCtx := errgroup.WithContext(ctx)
 

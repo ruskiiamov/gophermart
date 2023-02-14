@@ -12,9 +12,11 @@ import (
 )
 
 const (
-	allowHeader          = "Allow"
-	authUserIDContextKey = "auth_user_id"
+	allowHeader                 = "Allow"
+	authUserIDContextKey ctxKey = "auth_user_id"
 )
+
+type ctxKey string
 
 type middleware func(http.Handler) http.Handler
 

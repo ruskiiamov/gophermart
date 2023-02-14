@@ -11,6 +11,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/ruskiiamov/gophermart/internal/bonus"
+	"github.com/ruskiiamov/gophermart/internal/queue"
 )
 
 type orderRes struct {
@@ -20,7 +21,7 @@ type orderRes struct {
 	UploadedAt string  `json:"uploaded_at"`
 }
 
-func postOrders(bm bonus.Manager) http.Handler {
+func postOrders(bm bonus.Manager, qc queue.Controller) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userID, ok := r.Context().Value(authUserIDContextKey).(string)
 		if !ok || userID == "" {
@@ -63,9 +64,7 @@ func postOrders(bm bonus.Manager) http.Handler {
 			return
 		}
 
-		//TODO add Task to Queue
-		//create task
-		//m.qc.Push(task)
+		qc.Push(queue.NewTask(intOrderID))
 
 		w.WriteHeader(http.StatusAccepted)
 	})

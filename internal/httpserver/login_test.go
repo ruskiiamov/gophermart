@@ -17,7 +17,8 @@ const loginURL = "/api/user/login"
 func TestLogin(t *testing.T) {
 	ua := new(mockedUserAuthorizer)
 	bm := new(mockedBonusManager)
-	handler := createHandler(ua, bm)
+	qc := new(mockedQueueController)
+	handler := createHandler(ua, bm, qc)
 
 	t.Run("405", func(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, loginURL, nil)

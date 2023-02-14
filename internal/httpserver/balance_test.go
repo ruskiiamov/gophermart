@@ -16,7 +16,8 @@ const balanceURL = "/api/user/balance"
 func TestBalance(t *testing.T) {
 	ua := new(mockedUserAuthorizer)
 	bm := new(mockedBonusManager)
-	handler := createHandler(ua, bm)
+	qc := new(mockedQueueController)
+	handler := createHandler(ua, bm, qc)
 
 	t.Run("405", func(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, balanceURL, nil)

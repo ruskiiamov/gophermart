@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/ruskiiamov/gophermart/internal/bonus"
+	"github.com/ruskiiamov/gophermart/internal/queue"
 	"github.com/ruskiiamov/gophermart/internal/user"
 )
 
@@ -15,17 +16,17 @@ const (
 	appJSON        = "application/json"
 )
 
-func NewServer(ctx context.Context, address string, ua user.Authorizer, bm bonus.Manager) *http.Server {
+func NewServer(ctx context.Context, address string, ua user.Authorizer, bm bonus.Manager, qc queue.Controller) *http.Server {
 	return &http.Server{
 		Addr:    address,
-		Handler: createHandler(ua, bm),
+		Handler: createHandler(ua, bm, qc),
 		BaseContext: func(_ net.Listener) context.Context {
 			return ctx
 		},
 	}
 }
 
-func createHandler(ua user.Authorizer, bm bonus.Manager) http.Handler {
+func createHandler(ua user.Authorizer, bm bonus.Manager, qc queue.Controller) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", notfound)
@@ -46,7 +47,7 @@ func createHandler(ua user.Authorizer, bm bonus.Manager) http.Handler {
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch r.Method {
 			case http.MethodPost:
-				withMiddleware(postOrders(bm), auth(ua)).ServeHTTP(w, r)
+				withMiddleware(postOrders(bm, qc), auth(ua)).ServeHTTP(w, r)
 			case http.MethodGet:
 				withMiddleware(getOrders(bm), auth(ua)).ServeHTTP(w, r)
 			}

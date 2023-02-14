@@ -20,7 +20,8 @@ const ordersURL = "/api/user/orders"
 func TestOrders(t *testing.T) {
 	ua := new(mockedUserAuthorizer)
 	bm := new(mockedBonusManager)
-	handler := createHandler(ua, bm)
+	qc := new(mockedQueueController)
+	handler := createHandler(ua, bm, qc)
 
 	t.Run("405", func(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPut, ordersURL, nil)
@@ -40,7 +41,8 @@ func TestOrders(t *testing.T) {
 func TestPostOrders(t *testing.T) {
 	ua := new(mockedUserAuthorizer)
 	bm := new(mockedBonusManager)
-	handler := createHandler(ua, bm)
+	qc := new(mockedQueueController)
+	handler := createHandler(ua, bm, qc)
 
 	accessTokens := []string{"", "451hghjgi7r", "Bearer 1234abcd5678efgh"}
 	for _, accessToken := range accessTokens {
@@ -134,6 +136,9 @@ func TestPostOrders(t *testing.T) {
 			userID := "aaaa-bbbb-cccc-dddd"
 			ua.On("AuthByToken", mock.Anything, accessToken).Return(userID, nil).Once()
 			bm.On("AddOrder", mock.Anything, userID, intOrderID).Return(tt.err).Once()
+			if tt.status == http.StatusOK {
+				qc.On("Push", mock.Anything).Return().Once()
+			}
 
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, r)
@@ -151,7 +156,8 @@ func TestPostOrders(t *testing.T) {
 func TestGetOrders(t *testing.T) {
 	ua := new(mockedUserAuthorizer)
 	bm := new(mockedBonusManager)
-	handler := createHandler(ua, bm)
+	qc := new(mockedQueueController)
+	handler := createHandler(ua, bm, qc)
 
 	accessTokens := []string{"", "451hghjgi7r", "Bearer 1234abcd5678efgh"}
 	for _, accessToken := range accessTokens {
