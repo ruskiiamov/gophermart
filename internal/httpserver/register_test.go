@@ -25,6 +25,7 @@ func TestRegister(t *testing.T) {
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, r)
 		response := w.Result()
+		defer response.Body.Close()
 
 		assert.Equal(t, http.StatusMethodNotAllowed, response.StatusCode)
 		assert.Equal(t, http.MethodPost, response.Header.Get("Allow"))
