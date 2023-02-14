@@ -37,6 +37,8 @@ func initConfig() {
 	flag.StringVar(&(cfg.DatabaseURI), "d", cfg.DatabaseURI, "DB URI")
 	flag.StringVar(&(cfg.AccrualSystemAddress), "r", cfg.AccrualSystemAddress, "Accrual system address")
 	flag.StringVar(&(cfg.SignSecret), "s", cfg.SignSecret, "Sign secret for JWT")
+
+	flag.Parse()
 }
 
 func initLogger() {

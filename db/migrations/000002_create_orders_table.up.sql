@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS orders(
    user_id UUID NOT NULL REFERENCES users(id),
    status statuses NOT NULL,
    accrual INT DEFAULT 0,
-   created_at TIMESTAMP DEFAULT now()
+   created_at TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS user_id_idx ON orders (user_id);

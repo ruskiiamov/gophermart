@@ -50,6 +50,11 @@ func withdrawals(bm bonus.Manager) http.Handler {
 		}
 
 		content, err := json.Marshal(resItems)
+		if err != nil {
+			log.Error().Msgf("json marshall error: %s", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
 		w.Header().Add(contTypeHeader, appJSON)
 		w.WriteHeader(http.StatusOK)

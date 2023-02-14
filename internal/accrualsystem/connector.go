@@ -21,7 +21,7 @@ const (
 )
 
 type Order struct {
-	Order   int     `json:"order"`
+	Order   string  `json:"order"`
 	Status  string  `json:"status"`
 	Accrual float64 `json:"accrual"`
 }
@@ -71,7 +71,7 @@ func (c *connector) GetAccrual(ctx context.Context, orderID int) (status string,
 		return "", 0, fmt.Errorf("get accrual request not ok: %s", response.Status)
 	}
 
-	body, err := io.ReadAll(request.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		return "", 0, fmt.Errorf("read body error: %w", err)
 	}
