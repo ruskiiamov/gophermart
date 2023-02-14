@@ -24,6 +24,7 @@ func TestBalance(t *testing.T) {
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, r)
 		response := w.Result()
+		defer response.Body.Close()
 
 		assert.Equal(t, http.StatusMethodNotAllowed, response.StatusCode)
 		assert.Equal(t, http.MethodGet, response.Header.Get("Allow"))
@@ -41,6 +42,7 @@ func TestBalance(t *testing.T) {
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, r)
 			response := w.Result()
+			defer response.Body.Close()
 
 			resContent, err := io.ReadAll(response.Body)
 			assert.NoError(t, err)
@@ -64,6 +66,7 @@ func TestBalance(t *testing.T) {
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, r)
 		response := w.Result()
+		defer response.Body.Close()
 
 		resContent, err := io.ReadAll(response.Body)
 		assert.NoError(t, err)

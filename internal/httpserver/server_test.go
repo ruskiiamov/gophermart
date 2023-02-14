@@ -19,6 +19,7 @@ func TestNotFound(t *testing.T) {
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, r)
 		response := w.Result()
+		defer response.Body.Close()
 
 		assert.Equal(t, http.StatusNotFound, response.StatusCode)
 	})

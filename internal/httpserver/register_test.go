@@ -43,6 +43,7 @@ func TestRegister(t *testing.T) {
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, r)
 		response := w.Result()
+		defer response.Body.Close()
 
 		ua.AssertExpectations(t)
 
@@ -63,6 +64,7 @@ func TestRegister(t *testing.T) {
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, r)
 		response := w.Result()
+		defer response.Body.Close()
 
 		resContent, err := io.ReadAll(response.Body)
 		assert.NoError(t, err)
@@ -85,6 +87,7 @@ func TestRegister(t *testing.T) {
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, r)
 			response := w.Result()
+			defer response.Body.Close()
 
 			resContent, err := io.ReadAll(response.Body)
 			assert.NoError(t, err)
@@ -106,6 +109,7 @@ func TestRegister(t *testing.T) {
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, r)
 		response := w.Result()
+		defer response.Body.Close()
 
 		ua.AssertExpectations(t)
 
