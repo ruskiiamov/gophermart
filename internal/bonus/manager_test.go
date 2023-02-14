@@ -11,7 +11,8 @@ import (
 
 func TestAddOrder(t *testing.T) {
 	dc := new(mockedBonusDataContainer)
-	m := NewManager(dc)
+	asc := new(mockedAccrualSystemConnector)
+	m := NewManager(dc, asc)
 
 	t.Run("luhn", func(t *testing.T) {
 		err := m.AddOrder(context.Background(), "aaa-bbb-ccc", 79927398714)
@@ -87,7 +88,8 @@ func TestAddOrder(t *testing.T) {
 
 func TestGetOrders(t *testing.T) {
 	dc := new(mockedBonusDataContainer)
-	m := NewManager(dc)
+	asc := new(mockedAccrualSystemConnector)
+	m := NewManager(dc, asc)
 
 	tests := []struct {
 		orders []*Order
@@ -148,7 +150,8 @@ func TestGetOrders(t *testing.T) {
 
 func TestGetBalance(t *testing.T) {
 	dc := new(mockedBonusDataContainer)
-	m := NewManager(dc)
+	asc := new(mockedAccrualSystemConnector)
+	m := NewManager(dc, asc)
 
 	t.Run("balance", func(t *testing.T) {
 		userID := "aaaa-bbbb-cccc-dddd"
@@ -169,7 +172,8 @@ func TestGetBalance(t *testing.T) {
 
 func TestWithdraw(t *testing.T) {
 	dc := new(mockedBonusDataContainer)
-	m := NewManager(dc)
+	asc := new(mockedAccrualSystemConnector)
+	m := NewManager(dc, asc)
 
 	t.Run("luhn", func(t *testing.T) {
 		err := m.Withdraw(context.Background(), "aaa-bbb-ccc", 79927398714, 5000)
@@ -246,7 +250,8 @@ func TestWithdraw(t *testing.T) {
 
 func TestGetWithdrawals(t *testing.T) {
 	dc := new(mockedBonusDataContainer)
-	m := NewManager(dc)
+	asc := new(mockedAccrualSystemConnector)
+	m := NewManager(dc, asc)
 
 	tests := []struct {
 		withdrawals []*Withdrawal

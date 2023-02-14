@@ -10,27 +10,48 @@ import (
 	"github.com/ferdypruis/go-luhn"
 )
 
-var (
-	ErrUserHasOrder  = errors.New("user already has that order")
-	ErrOrderExists   = errors.New("order exists")
-	ErrLuhnAlgo      = errors.New("luhn check fail")
-	ErrNotEnough     = errors.New("not enough balance")
-	ErrOrderNotFound = errors.New("order not found")
-	ErrWrongSum      = errors.New("wrong sum")
+const (
+	registered = "REGISTERED"
+	invalid    = "INVALID"
+	processing = "PROCESSING"
+	processed  = "PROCESSED"
 )
+
+var (
+	ErrUserHasOrder    = errors.New("user already has that order")
+	ErrOrderExists     = errors.New("order exists")
+	ErrLuhnAlgo        = errors.New("luhn check fail")
+	ErrNotEnough       = errors.New("not enough balance")
+	ErrOrderNotFound   = errors.New("order not found")
+	ErrWrongSum        = errors.New("wrong sum")
+	ErrAccrualNotReady = errors.New("accrual not ready")
+)
+
+type TooManyReqError struct {
+	RetryAfter int
+}
 
 type BonusDataContainer interface {
 	CreateOrder(ctx context.Context, userID string, orderID int) (*Order, error)
+	UpdateOrder(ctx context.Context, orderID, accrual int, status string) error
 	GetOrder(ctx context.Context, orderID int) (*Order, error)
 	GetOrders(ctx context.Context, userID string) ([]*Order, error)
+	GetNotFinalOrders(ctx context.Context) ([]*Order, error)
 	GetBalance(ctx context.Context, userID string) (current, withdrawn int, err error)
 	CreateWithdraw(ctx context.Context, userID string, orderID, sum int) error
 	GetWithdrawals(ctx context.Context, userID string) ([]*Withdrawal, error)
 }
 
+type AccrualSystemConnector interface {
+	GetAccrual(ctx context.Context, orderID int) (status string, accrual int, err error)
+}
+
 type Manager interface {
 	AddOrder(ctx context.Context, userID string, orderID int) error
 	GetOrders(ctx context.Context, userID string) ([]*Order, error)
+	GetNotFinalOrders(ctx context.Context) ([]*Order, error)
+	SetOrderAccrual(ctx context.Context, orderID int) error
+	SetOrderInvalid(ctx context.Context, orderID int) error
 	GetBalance(ctx context.Context, userID string) (current, withdrawn int, err error)
 	Withdraw(ctx context.Context, userID string, order int, sum int) error
 	GetWithdrawals(ctx context.Context, userID string) ([]*Withdrawal, error)
@@ -52,11 +73,15 @@ type Withdrawal struct {
 }
 
 type manager struct {
-	dc BonusDataContainer
+	dc  BonusDataContainer
+	asc AccrualSystemConnector
 }
 
-func NewManager(dc BonusDataContainer) Manager {
-	return &manager{dc: dc}
+func NewManager(dc BonusDataContainer, asc AccrualSystemConnector) Manager {
+	return &manager{
+		dc:  dc,
+		asc: asc,
+	}
 }
 
 func (m *manager) AddOrder(ctx context.Context, userID string, orderID int) error {
@@ -66,7 +91,6 @@ func (m *manager) AddOrder(ctx context.Context, userID string, orderID int) erro
 
 	order, err := m.dc.CreateOrder(ctx, userID, orderID)
 	if err == nil {
-		//TODO add Task to Queue
 		return nil
 	}
 
@@ -91,6 +115,49 @@ func (m *manager) GetOrders(ctx context.Context, userID string) ([]*Order, error
 	}
 
 	return orders, nil
+}
+
+func (m *manager) GetNotFinalOrders(ctx context.Context) ([]*Order, error) {
+	orders, err := m.dc.GetNotFinalOrders(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get not final orders error: %w", err)
+	}
+
+	return orders, nil
+}
+
+func (m *manager) SetOrderAccrual(ctx context.Context, orderID int) error {
+	status, accrual, err := m.asc.GetAccrual(ctx, orderID)
+	if errors.Is(err, ErrAccrualNotReady) {
+		return err
+	}
+	if err != nil {
+		return fmt.Errorf("get accrual error: %w", err)
+	}
+
+	if status == registered {
+		status = processing
+	}
+
+	err = m.dc.UpdateOrder(ctx, orderID, accrual, status)
+	if err != nil {
+		return fmt.Errorf("update order error: %w", err)
+	}
+
+	if status != invalid && status != processed {
+		return ErrAccrualNotReady
+	}
+
+	return nil
+}
+
+func (m *manager) SetOrderInvalid(ctx context.Context, orderID int) error {
+	err := m.dc.UpdateOrder(ctx, orderID, 0, invalid)
+	if err != nil {
+		return fmt.Errorf("update order error: %w", err)
+	}
+
+	return nil
 }
 
 func (m *manager) GetBalance(ctx context.Context, userID string) (current, withdrawn int, err error) {

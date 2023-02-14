@@ -21,6 +21,21 @@ func (m *mockedBonusManager) GetOrders(ctx context.Context, userID string) ([]*b
 	return args.Get(0).([]*bonus.Order), args.Error(1)
 }
 
+func (m *mockedBonusManager) GetNotFinalOrders(ctx context.Context) ([]*bonus.Order, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]*bonus.Order), args.Error(1)
+}
+
+func (m *mockedBonusManager) SetOrderAccrual(ctx context.Context, orderID int) error {
+	args := m.Called(ctx, orderID)
+	return args.Error(0)
+}
+
+func (m *mockedBonusManager) SetOrderInvalid(ctx context.Context, orderID int) error {
+	args := m.Called(ctx, orderID)
+	return args.Error(0)
+}
+
 func (m *mockedBonusManager) GetBalance(ctx context.Context, userID string) (current, withdrawn int, err error) {
 	args := m.Called(ctx, userID)
 	return args.Int(0), args.Int(1), args.Error(2)

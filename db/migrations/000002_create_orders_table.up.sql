@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS orders(
    id BIGINT PRIMARY KEY,
    user_id UUID NOT NULL REFERENCES users(id),
    status statuses NOT NULL,
-   accrual INT,
+   accrual INT DEFAULT 0,
    created_at TIMESTAMP DEFAULT now()
 );
 

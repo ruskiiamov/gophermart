@@ -15,6 +15,11 @@ func (m *mockedBonusDataContainer) CreateOrder(ctx context.Context, userID strin
 	return args.Get(0).(*Order), args.Error(1)
 }
 
+func (m *mockedBonusDataContainer) UpdateOrder(ctx context.Context, orderID, accrual int, status string) error {
+	args := m.Called(ctx, orderID, accrual, status)
+	return args.Error(0)
+}
+
 func (m *mockedBonusDataContainer) GetOrder(ctx context.Context, orderID int) (*Order, error) {
 	args := m.Called(ctx, orderID)
 	return args.Get(0).(*Order), args.Error(1)
@@ -22,6 +27,11 @@ func (m *mockedBonusDataContainer) GetOrder(ctx context.Context, orderID int) (*
 
 func (m *mockedBonusDataContainer) GetOrders(ctx context.Context, userID string) ([]*Order, error) {
 	args := m.Called(ctx, userID)
+	return args.Get(0).([]*Order), args.Error(1)
+}
+
+func (m *mockedBonusDataContainer) GetNotFinalOrders(ctx context.Context) ([]*Order, error) {
+	args := m.Called(ctx)
 	return args.Get(0).([]*Order), args.Error(1)
 }
 

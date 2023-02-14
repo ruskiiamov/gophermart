@@ -63,6 +63,10 @@ func postOrders(bm bonus.Manager) http.Handler {
 			return
 		}
 
+		//TODO add Task to Queue
+		//create task
+		//m.qc.Push(task)
+
 		w.WriteHeader(http.StatusAccepted)
 	})
 }

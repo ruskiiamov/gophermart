@@ -5,15 +5,18 @@ import (
 	"flag"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
 	"github.com/caarlos0/env/v7"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/ruskiiamov/gophermart/internal/accrualsystem"
 	"github.com/ruskiiamov/gophermart/internal/bonus"
 	"github.com/ruskiiamov/gophermart/internal/data"
 	"github.com/ruskiiamov/gophermart/internal/httpserver"
+	"github.com/ruskiiamov/gophermart/internal/queue"
 	"github.com/ruskiiamov/gophermart/internal/user"
 	"golang.org/x/sync/errgroup"
 )
@@ -55,8 +58,22 @@ func main() {
 		panic(err)
 	}
 
+	accrualSystemConnector := accrualsystem.NewConnector(cfg.AccrualSystemAddress)
 	userAuthorizer := user.NewAuthorizer(dataContainer, cfg.SignSecret)
-	bonusManager := bonus.NewManager(dataContainer)
+	bonusManager := bonus.NewManager(dataContainer, accrualSystemConnector)
+
+	queueController, err := queue.NewController(ctx, bonusManager)
+	if err != nil {
+		panic(err)
+	}
+
+	workers := make([]*queue.Worker, 0, runtime.NumCPU())
+	for i := 0; i < runtime.NumCPU(); i++ {
+		workers = append(workers, queue.NewWorker(queueController, bonusManager))
+	}
+	for _, w := range workers {
+		go w.Loop(ctx)
+	}
 
 	server := httpserver.NewServer(ctx, cfg.RunAddress, userAuthorizer, bonusManager)
 
