@@ -1,4 +1,4 @@
-package httpserver
+package server
 
 import (
 	"context"
@@ -12,14 +12,14 @@ import (
 	"github.com/ruskiiamov/gophermart/internal/user"
 )
 
-type registerReq struct {
+type loginReq struct {
 	Login    string `json:"login"`
 	Password string `json:"password"`
 }
 
-func register(ua user.AuthorizerI) http.Handler {
+func login(ua user.AuthorizerI) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var regReq registerReq
+		var logReq loginReq
 
 		content, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -28,14 +28,14 @@ func register(ua user.AuthorizerI) http.Handler {
 			return
 		}
 
-		err = json.Unmarshal(content, &regReq)
+		err = json.Unmarshal(content, &logReq)
 		if err != nil {
 			log.Info().Msgf("json unmarshall error: %s", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-		if regReq.Login == "" || regReq.Password == "" {
+		if logReq.Login == "" || logReq.Password == "" {
 			log.Info().Msg("wrong json structure")
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -44,18 +44,11 @@ func register(ua user.AuthorizerI) http.Handler {
 		ctx, cancel := context.WithTimeout(r.Context(), 1*time.Second)
 		defer cancel()
 
-		err = ua.Register(ctx, regReq.Login, regReq.Password)
-		if errors.Is(err, user.ErrLoginExists) {
-			w.WriteHeader(http.StatusConflict)
+		accessToken, err := ua.Login(ctx, logReq.Login, logReq.Password)
+		if errors.Is(err, user.ErrLoginPassword) {
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		if err != nil {
-			log.Error().Msgf("register error: %s", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		accessToken, err := ua.Login(ctx, regReq.Login, regReq.Password)
 		if err != nil {
 			log.Error().Msgf("login error: %s", err)
 			w.WriteHeader(http.StatusInternalServerError)

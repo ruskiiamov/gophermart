@@ -28,7 +28,7 @@ type AuthDataContainer interface {
 	GetUser(ctx context.Context, login string) (*User, error)
 }
 
-//TODO delete
+// TODO delete
 type AuthorizerI interface {
 	Register(ctx context.Context, login, password string) error
 	Login(ctx context.Context, login, password string) (accessToken string, err error)
@@ -40,7 +40,7 @@ type Authorizer struct {
 	secret string
 }
 
-func NewAuthorizer(dc AuthDataContainer, secret string) AuthorizerI {
+func NewAuthorizer(dc AuthDataContainer, secret string) *Authorizer {
 	return &Authorizer{
 		dc:     dc,
 		secret: secret,

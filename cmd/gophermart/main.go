@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"runtime"
@@ -13,7 +15,7 @@ import (
 	"github.com/ruskiiamov/gophermart/internal/bonus"
 	"github.com/ruskiiamov/gophermart/internal/config"
 	"github.com/ruskiiamov/gophermart/internal/database"
-	"github.com/ruskiiamov/gophermart/internal/httpserver"
+	"github.com/ruskiiamov/gophermart/internal/handler"
 	"github.com/ruskiiamov/gophermart/internal/logger"
 	"github.com/ruskiiamov/gophermart/internal/task"
 	"github.com/ruskiiamov/gophermart/internal/user"
@@ -57,7 +59,14 @@ func main() {
 		})
 	}
 
-	server := httpserver.NewServer(gCtx, cfg.RunAddress, userAuthorizer, bonusManager, taskDispatcher)
+	//server := server.NewServer(gCtx, cfg.RunAddress, userAuthorizer, bonusManager, taskDispatcher)
+	server := &http.Server{
+		Addr:    cfg.RunAddress,
+		Handler: handler.NewHandler(userAuthorizer, bonusManager, taskDispatcher),
+		BaseContext: func(_ net.Listener) context.Context {
+			return gCtx
+		},
+	}
 
 	g.Go(func() error {
 		return server.ListenAndServe()

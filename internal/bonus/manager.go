@@ -42,7 +42,7 @@ type AccrualProvider interface {
 	GetAccrual(ctx context.Context, orderID int) (status string, accrual int, err error)
 }
 
-//TODO delete
+// TODO delete
 type ManagerI interface {
 	AddOrder(ctx context.Context, userID string, orderID int) error
 	GetOrders(ctx context.Context, userID string) ([]*Order, error)
@@ -74,7 +74,7 @@ type Manager struct {
 	accrualProvider AccrualProvider
 }
 
-func NewManager(dc BonusDataContainer, accrualProvider AccrualProvider) ManagerI {
+func NewManager(dc BonusDataContainer, accrualProvider AccrualProvider) *Manager {
 	return &Manager{
 		dc:              dc,
 		accrualProvider: accrualProvider,

@@ -1,4 +1,4 @@
-package httpserver
+package handler
 
 import (
 	"context"
@@ -21,9 +21,9 @@ type orderRes struct {
 	UploadedAt string  `json:"uploaded_at"`
 }
 
-func postOrders(bm bonus.ManagerI, qc task.DispatcherI) http.Handler {
+func postOrder(bm *bonus.Manager, td *task.Dispatcher) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userID, ok := r.Context().Value(authUserIDContextKey).(string)
+		userID, ok := r.Context().Value(userIDKey).(string)
 		if !ok || userID == "" {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -64,15 +64,15 @@ func postOrders(bm bonus.ManagerI, qc task.DispatcherI) http.Handler {
 			return
 		}
 
-		qc.Push(task.NewTask(intOrderID))
+		td.Push(task.NewTask(intOrderID))
 
 		w.WriteHeader(http.StatusAccepted)
 	})
 }
 
-func getOrders(bm bonus.ManagerI) http.Handler {
+func getOrders(bm *bonus.Manager) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userID, ok := r.Context().Value(authUserIDContextKey).(string)
+		userID, ok := r.Context().Value(userIDKey).(string)
 		if !ok || userID == "" {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
