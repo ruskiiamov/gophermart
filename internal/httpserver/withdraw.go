@@ -18,7 +18,7 @@ type withdrawReq struct {
 	Sum   float64 `json:"sum"`
 }
 
-func withdraw(bm bonus.Manager) http.Handler {
+func withdraw(bm bonus.ManagerI) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userID, ok := r.Context().Value(authUserIDContextKey).(string)
 		if !ok || userID == "" {

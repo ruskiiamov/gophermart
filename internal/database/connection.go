@@ -1,4 +1,4 @@
-package data
+package database
 
 import (
 	"context"
@@ -6,38 +6,57 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog/log"
 	"github.com/ruskiiamov/gophermart/internal/bonus"
 	"github.com/ruskiiamov/gophermart/internal/user"
 )
 
-var _ user.AuthDataContainer = (*container)(nil)
-var _ bonus.BonusDataContainer = (*container)(nil)
+const source = "file://internal/database/migrations"
 
-type container struct {
+type Connection struct {
 	dbpool *pgxpool.Pool
 }
 
-func NewContainer(ctx context.Context, dbURI string) (*container, error) {
-	err := doMigrations(dbURI)
-	if err != nil {
-		return nil, fmt.Errorf("do migrations error: %w", err)
-	}
-
+func NewConnection(ctx context.Context, dbURI string) (*Connection, error) {
 	dbpool, err := pgxpool.New(ctx, dbURI)
 	if err != nil {
 		return nil, fmt.Errorf("DB pool creation error: %w", err)
 	}
 
-	return &container{dbpool: dbpool}, nil
+	return &Connection{dbpool: dbpool}, nil
 }
 
-func (c *container) Close() {
+func (c *Connection) Migrate() error {
+	dbURI := c.dbpool.Config().ConnString()
+	m, err := migrate.New(source, dbURI)
+	if err != nil {
+		return fmt.Errorf("migrate instance creation error: %w", err)
+	}
+
+	err = m.Up()
+	if errors.Is(err, migrate.ErrNoChange) {
+		log.Info().Msg("migrations no changed")
+		return nil
+	}
+
+	if err != nil {
+		return fmt.Errorf("applying migrations error: %w", err)
+	}
+
+	log.Info().Msg("migrations done")
+	return nil
+}
+
+func (c *Connection) Close() {
 	c.dbpool.Close()
 }
 
-func (c *container) CreateUser(ctx context.Context, login, passHash string) error {
+func (c *Connection) CreateUser(ctx context.Context, login, passHash string) error {
 	var id string
 
 	err := c.dbpool.QueryRow(
@@ -58,7 +77,7 @@ func (c *container) CreateUser(ctx context.Context, login, passHash string) erro
 	return nil
 }
 
-func (c *container) GetUser(ctx context.Context, login string) (*user.User, error) {
+func (c *Connection) GetUser(ctx context.Context, login string) (*user.User, error) {
 	u := &user.User{Login: login}
 
 	err := c.dbpool.QueryRow(
@@ -77,7 +96,7 @@ func (c *container) GetUser(ctx context.Context, login string) (*user.User, erro
 	return u, nil
 }
 
-func (c *container) CreateOrder(ctx context.Context, userID string, orderID int) (*bonus.Order, error) {
+func (c *Connection) CreateOrder(ctx context.Context, userID string, orderID int) (*bonus.Order, error) {
 	var createdAt time.Time
 
 	err := c.dbpool.QueryRow(
@@ -104,7 +123,7 @@ func (c *container) CreateOrder(ctx context.Context, userID string, orderID int)
 	return ord, nil
 }
 
-func (c *container) UpdateOrder(ctx context.Context, orderID, accrual int, status string) error {
+func (c *Connection) UpdateOrder(ctx context.Context, orderID, accrual int, status string) error {
 	row, err := c.dbpool.Query(
 		ctx,
 		`UPDATE orders SET accrual = $1, status = $2 WHERE id = $3;`,
@@ -120,7 +139,7 @@ func (c *container) UpdateOrder(ctx context.Context, orderID, accrual int, statu
 	return nil
 }
 
-func (c *container) GetOrder(ctx context.Context, orderID int) (*bonus.Order, error) {
+func (c *Connection) GetOrder(ctx context.Context, orderID int) (*bonus.Order, error) {
 	ord := &bonus.Order{ID: orderID}
 
 	err := c.dbpool.QueryRow(
@@ -139,7 +158,7 @@ func (c *container) GetOrder(ctx context.Context, orderID int) (*bonus.Order, er
 	return ord, nil
 }
 
-func (c *container) GetOrders(ctx context.Context, userID string) ([]*bonus.Order, error) {
+func (c *Connection) GetOrders(ctx context.Context, userID string) ([]*bonus.Order, error) {
 	orders := make([]*bonus.Order, 0)
 
 	rows, err := c.dbpool.Query(
@@ -168,7 +187,7 @@ func (c *container) GetOrders(ctx context.Context, userID string) ([]*bonus.Orde
 	return orders, nil
 }
 
-func (c *container) GetNotFinalOrders(ctx context.Context) ([]*bonus.Order, error) {
+func (c *Connection) GetNotFinalOrders(ctx context.Context) ([]*bonus.Order, error) {
 	orders := make([]*bonus.Order, 0)
 
 	rows, err := c.dbpool.Query(
@@ -196,7 +215,7 @@ func (c *container) GetNotFinalOrders(ctx context.Context) ([]*bonus.Order, erro
 	return orders, nil
 }
 
-func (c *container) GetBalance(ctx context.Context, userID string) (current, withdrawn int, err error) {
+func (c *Connection) GetBalance(ctx context.Context, userID string) (current, withdrawn int, err error) {
 	tx, err := c.dbpool.Begin(ctx)
 	if err != nil {
 		return 0, 0, fmt.Errorf("transaction begin error: %w", err)
@@ -233,7 +252,7 @@ func (c *container) GetBalance(ctx context.Context, userID string) (current, wit
 	return current, withdrawn, nil
 }
 
-func (c *container) CreateWithdraw(ctx context.Context, userID string, orderID, sum int) error {
+func (c *Connection) CreateWithdraw(ctx context.Context, userID string, orderID, sum int) error {
 	var createdAt time.Time
 
 	err := c.dbpool.QueryRow(
@@ -255,7 +274,7 @@ func (c *container) CreateWithdraw(ctx context.Context, userID string, orderID, 
 	return nil
 }
 
-func (c *container) GetWithdrawals(ctx context.Context, userID string) ([]*bonus.Withdrawal, error) {
+func (c *Connection) GetWithdrawals(ctx context.Context, userID string) ([]*bonus.Withdrawal, error) {
 	withdrawals := make([]*bonus.Withdrawal, 0)
 
 	rows, err := c.dbpool.Query(

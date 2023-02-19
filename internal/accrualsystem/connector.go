@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rs/zerolog/log"
 	"github.com/ruskiiamov/gophermart/internal/bonus"
+	"github.com/ruskiiamov/gophermart/internal/logger"
 )
 
 const (
@@ -26,20 +26,18 @@ type Order struct {
 	Accrual float64 `json:"accrual"`
 }
 
-var _ bonus.AccrualSystemConnector = (*connector)(nil)
-
-type connector struct {
+type Connector struct {
 	address string
 	client  http.Client
 	lock    chan struct{}
 	mu      sync.Mutex
 }
 
-func NewConnector(address string) *connector {
+func NewConnector(address string) *Connector {
 	lock := make(chan struct{})
 	close(lock)
 
-	return &connector{
+	return &Connector{
 		address: address,
 		client: http.Client{
 			Timeout: timeout,
@@ -48,7 +46,7 @@ func NewConnector(address string) *connector {
 	}
 }
 
-func (c *connector) GetAccrual(ctx context.Context, orderID int) (status string, accrual int, err error) {
+func (c *Connector) GetAccrual(ctx context.Context, orderID int) (status string, accrual int, err error) {
 	<-c.lock
 
 	url := c.address + "/api/orders/" + strconv.Itoa(orderID)
@@ -63,7 +61,8 @@ func (c *connector) GetAccrual(ctx context.Context, orderID int) (status string,
 	}
 
 	if response.StatusCode == http.StatusTooManyRequests {
-		c.lockByTooManyRequests(response)
+		retryAfter := c.getRetryAfter(response)
+		c.lockByTooManyRequests(retryAfter)
 		return "", 0, bonus.ErrAccrualNotReady
 	}
 
@@ -87,24 +86,30 @@ func (c *connector) GetAccrual(ctx context.Context, orderID int) (status string,
 	return order.Status, accrual, nil
 }
 
-func (c *connector) lockByTooManyRequests(response *http.Response) {
+func (c *Connector) getRetryAfter(response *http.Response) int {
+	var retryAfter int
+	var err error
+
+	retryAfterValue := response.Header.Get(retryAfterHeader)
+	if retryAfterValue != "" {
+		retryAfter, err = strconv.Atoi(retryAfterValue)
+		if err != nil {
+			logger.Error(fmt.Sprintf("retry-after atoi error: %s", err))
+			retryAfter = defaultRetryAfter
+		}
+	} else {
+		retryAfter = defaultRetryAfter
+	}
+
+	return retryAfter
+}
+
+func (c *Connector) lockByTooManyRequests(retryAfter int) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	select {
 	case <-c.lock:
-		var retryAfter int
-		var err error
-		retryAfterValue := response.Header.Get(retryAfterHeader)
-		if retryAfterValue != "" {
-			retryAfter, err = strconv.Atoi(retryAfterValue)
-			if err != nil {
-				log.Error().Msgf("retry-after atoi error: %s", err)
-				retryAfter = defaultRetryAfter
-			}
-		} else {
-			retryAfter = defaultRetryAfter
-		}
 		c.lock = make(chan struct{})
 		time.AfterFunc((time.Duration(retryAfter) * time.Second), func() {
 			close(c.lock)

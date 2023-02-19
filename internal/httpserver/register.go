@@ -17,7 +17,7 @@ type registerReq struct {
 	Password string `json:"password"`
 }
 
-func register(ua user.Authorizer) http.Handler {
+func register(ua user.AuthorizerI) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var regReq registerReq
 

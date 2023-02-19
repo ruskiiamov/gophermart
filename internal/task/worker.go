@@ -1,4 +1,4 @@
-package queue
+package task
 
 import (
 	"context"
@@ -11,11 +11,11 @@ import (
 const retries = 3
 
 type Worker struct {
-	qc Controller
-	bm bonus.Manager
+	qc DispatcherI
+	bm bonus.ManagerI
 }
 
-func NewWorker(qc Controller, bm bonus.Manager) *Worker {
+func NewWorker(qc DispatcherI, bm bonus.ManagerI) *Worker {
 	return &Worker{
 		qc: qc,
 		bm: bm,
@@ -24,12 +24,12 @@ func NewWorker(qc Controller, bm bonus.Manager) *Worker {
 
 func (w *Worker) Loop(ctx context.Context) {
 	for {
+		t := w.qc.PopWait()
+
 		select {
 		case <-ctx.Done():
 			return
 		default:
-			t := w.qc.PopWait()
-
 			err := w.bm.SetOrderAccrual(ctx, t.orderID)
 			if errors.Is(err, bonus.ErrAccrualNotReady) {
 				w.qc.Push(t)

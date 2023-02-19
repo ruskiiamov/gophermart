@@ -28,25 +28,26 @@ type AuthDataContainer interface {
 	GetUser(ctx context.Context, login string) (*User, error)
 }
 
-type Authorizer interface {
+//TODO delete
+type AuthorizerI interface {
 	Register(ctx context.Context, login, password string) error
 	Login(ctx context.Context, login, password string) (accessToken string, err error)
 	AuthByToken(ctx context.Context, accessToken string) (userID string, err error)
 }
 
-type authorizer struct {
+type Authorizer struct {
 	dc     AuthDataContainer
 	secret string
 }
 
-func NewAuthorizer(dc AuthDataContainer, secret string) Authorizer {
-	return &authorizer{
+func NewAuthorizer(dc AuthDataContainer, secret string) AuthorizerI {
+	return &Authorizer{
 		dc:     dc,
 		secret: secret,
 	}
 }
 
-func (a *authorizer) Register(ctx context.Context, login, password string) error {
+func (a *Authorizer) Register(ctx context.Context, login, password string) error {
 	passHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
 	if err != nil {
 		return fmt.Errorf("password hashing error: %w", err)
@@ -63,7 +64,7 @@ func (a *authorizer) Register(ctx context.Context, login, password string) error
 	return nil
 }
 
-func (a *authorizer) Login(ctx context.Context, login, password string) (string, error) {
+func (a *Authorizer) Login(ctx context.Context, login, password string) (string, error) {
 	user, err := a.dc.GetUser(ctx, login)
 	if errors.Is(err, ErrLoginNotFound) {
 		return "", ErrLoginPassword
@@ -85,7 +86,7 @@ func (a *authorizer) Login(ctx context.Context, login, password string) (string,
 	return bearer + accessToken, nil
 }
 
-func (a *authorizer) AuthByToken(ctx context.Context, accessToken string) (userID string, err error) {
+func (a *Authorizer) AuthByToken(ctx context.Context, accessToken string) (userID string, err error) {
 	if len(accessToken) <= len(bearer) {
 		return "", ErrTokenNotValid
 	}

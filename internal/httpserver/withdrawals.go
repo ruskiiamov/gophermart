@@ -17,7 +17,7 @@ type withdrawRes struct {
 	ProcessedAt string  `json:"processed_at"`
 }
 
-func withdrawals(bm bonus.Manager) http.Handler {
+func withdrawals(bm bonus.ManagerI) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userID, ok := r.Context().Value(authUserIDContextKey).(string)
 		if !ok || userID == "" {

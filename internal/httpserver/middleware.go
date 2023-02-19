@@ -73,7 +73,7 @@ func contType(value string) middleware {
 	}
 }
 
-func auth(ua user.Authorizer) middleware {
+func auth(ua user.AuthorizerI) middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			accessToken := r.Header.Get(authHeader)

@@ -1,4 +1,4 @@
-package queue
+package task
 
 import (
 	"context"
@@ -17,19 +17,21 @@ func NewTask(orderID int) *Task {
 	return &Task{orderID: orderID}
 }
 
-type Controller interface {
+// TODO delete
+type DispatcherI interface {
 	Push(t *Task)
 	PopWait() *Task
 }
 
-type controller struct {
+type Dispatcher struct {
 	arr  []*Task
 	mu   sync.Mutex
 	cond *sync.Cond
+	ctx  context.Context
 }
 
-func NewController(ctx context.Context, bm bonus.Manager) (*controller, error) {
-	c := &controller{}
+func NewDispatcher(ctx context.Context, bm bonus.ManagerI) (*Dispatcher, error) {
+	c := &Dispatcher{ctx: ctx}
 	c.cond = sync.NewCond(&c.mu)
 
 	orders, err := bm.GetNotFinalOrders(ctx)
@@ -44,7 +46,7 @@ func NewController(ctx context.Context, bm bonus.Manager) (*controller, error) {
 	return c, nil
 }
 
-func (c *controller) Push(t *Task) {
+func (c *Dispatcher) Push(t *Task) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -53,16 +55,24 @@ func (c *controller) Push(t *Task) {
 	c.cond.Signal()
 }
 
-func (c *controller) PopWait() *Task {
+func (c *Dispatcher) PopWait() *Task {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	for len(c.arr) == 0 {
-		c.cond.Wait()
+		select {
+		case <-c.ctx.Done():
+			return nil
+		default:
+			c.cond.Wait()
+		}
 	}
 
 	t := c.arr[0]
 	c.arr = c.arr[1:]
-
 	return t
+}
+
+func (c *Dispatcher) Close() {
+	c.cond.Broadcast()
 }

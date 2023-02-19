@@ -15,7 +15,7 @@ type balanceRes struct {
 	Withdrawn float64 `json:"withdrawn"`
 }
 
-func balance(bm bonus.Manager) http.Handler {
+func balance(bm bonus.ManagerI) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userID, ok := r.Context().Value(authUserIDContextKey).(string)
 		if !ok || userID == "" {

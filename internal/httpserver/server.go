@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/ruskiiamov/gophermart/internal/bonus"
-	"github.com/ruskiiamov/gophermart/internal/queue"
+	"github.com/ruskiiamov/gophermart/internal/task"
 	"github.com/ruskiiamov/gophermart/internal/user"
 )
 
@@ -16,7 +16,7 @@ const (
 	appJSON        = "application/json"
 )
 
-func NewServer(ctx context.Context, address string, ua user.Authorizer, bm bonus.Manager, qc queue.Controller) *http.Server {
+func NewServer(ctx context.Context, address string, ua user.AuthorizerI, bm bonus.ManagerI, qc task.DispatcherI) *http.Server {
 	return &http.Server{
 		Addr:    address,
 		Handler: createHandler(ua, bm, qc),
@@ -26,10 +26,12 @@ func NewServer(ctx context.Context, address string, ua user.Authorizer, bm bonus
 	}
 }
 
-func createHandler(ua user.Authorizer, bm bonus.Manager, qc queue.Controller) http.Handler {
+func createHandler(ua user.AuthorizerI, bm bonus.ManagerI, qc task.DispatcherI) http.Handler {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/", notfound)
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	})
 
 	mux.Handle("/api/user/register", withMiddleware(
 		register(ua),
@@ -75,8 +77,4 @@ func createHandler(ua user.Authorizer, bm bonus.Manager, qc queue.Controller) ht
 	))
 
 	return mux
-}
-
-func notfound(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotFound)
 }

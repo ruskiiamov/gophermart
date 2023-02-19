@@ -17,7 +17,7 @@ type loginReq struct {
 	Password string `json:"password"`
 }
 
-func login(ua user.Authorizer) http.Handler {
+func login(ua user.AuthorizerI) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var logReq loginReq
 

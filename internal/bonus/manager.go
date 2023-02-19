@@ -27,10 +27,6 @@ var (
 	ErrAccrualNotReady = errors.New("accrual not ready")
 )
 
-type TooManyReqError struct {
-	RetryAfter int
-}
-
 type BonusDataContainer interface {
 	CreateOrder(ctx context.Context, userID string, orderID int) (*Order, error)
 	UpdateOrder(ctx context.Context, orderID, accrual int, status string) error
@@ -42,11 +38,12 @@ type BonusDataContainer interface {
 	GetWithdrawals(ctx context.Context, userID string) ([]*Withdrawal, error)
 }
 
-type AccrualSystemConnector interface {
+type AccrualProvider interface {
 	GetAccrual(ctx context.Context, orderID int) (status string, accrual int, err error)
 }
 
-type Manager interface {
+//TODO delete
+type ManagerI interface {
 	AddOrder(ctx context.Context, userID string, orderID int) error
 	GetOrders(ctx context.Context, userID string) ([]*Order, error)
 	GetNotFinalOrders(ctx context.Context) ([]*Order, error)
@@ -72,19 +69,19 @@ type Withdrawal struct {
 	CreatedAt time.Time
 }
 
-type manager struct {
-	dc  BonusDataContainer
-	asc AccrualSystemConnector
+type Manager struct {
+	dc              BonusDataContainer
+	accrualProvider AccrualProvider
 }
 
-func NewManager(dc BonusDataContainer, asc AccrualSystemConnector) Manager {
-	return &manager{
-		dc:  dc,
-		asc: asc,
+func NewManager(dc BonusDataContainer, accrualProvider AccrualProvider) ManagerI {
+	return &Manager{
+		dc:              dc,
+		accrualProvider: accrualProvider,
 	}
 }
 
-func (m *manager) AddOrder(ctx context.Context, userID string, orderID int) error {
+func (m *Manager) AddOrder(ctx context.Context, userID string, orderID int) error {
 	if !luhn.Valid(strconv.Itoa(orderID)) {
 		return ErrLuhnAlgo
 	}
@@ -108,7 +105,7 @@ func (m *manager) AddOrder(ctx context.Context, userID string, orderID int) erro
 	return ErrOrderExists
 }
 
-func (m *manager) GetOrders(ctx context.Context, userID string) ([]*Order, error) {
+func (m *Manager) GetOrders(ctx context.Context, userID string) ([]*Order, error) {
 	orders, err := m.dc.GetOrders(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("get orders error: %w", err)
@@ -117,7 +114,7 @@ func (m *manager) GetOrders(ctx context.Context, userID string) ([]*Order, error
 	return orders, nil
 }
 
-func (m *manager) GetNotFinalOrders(ctx context.Context) ([]*Order, error) {
+func (m *Manager) GetNotFinalOrders(ctx context.Context) ([]*Order, error) {
 	orders, err := m.dc.GetNotFinalOrders(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get not final orders error: %w", err)
@@ -126,8 +123,8 @@ func (m *manager) GetNotFinalOrders(ctx context.Context) ([]*Order, error) {
 	return orders, nil
 }
 
-func (m *manager) SetOrderAccrual(ctx context.Context, orderID int) error {
-	status, accrual, err := m.asc.GetAccrual(ctx, orderID)
+func (m *Manager) SetOrderAccrual(ctx context.Context, orderID int) error {
+	status, accrual, err := m.accrualProvider.GetAccrual(ctx, orderID)
 	if errors.Is(err, ErrAccrualNotReady) {
 		return err
 	}
@@ -151,7 +148,7 @@ func (m *manager) SetOrderAccrual(ctx context.Context, orderID int) error {
 	return nil
 }
 
-func (m *manager) SetOrderInvalid(ctx context.Context, orderID int) error {
+func (m *Manager) SetOrderInvalid(ctx context.Context, orderID int) error {
 	err := m.dc.UpdateOrder(ctx, orderID, 0, invalid)
 	if err != nil {
 		return fmt.Errorf("update order error: %w", err)
@@ -160,7 +157,7 @@ func (m *manager) SetOrderInvalid(ctx context.Context, orderID int) error {
 	return nil
 }
 
-func (m *manager) GetBalance(ctx context.Context, userID string) (current, withdrawn int, err error) {
+func (m *Manager) GetBalance(ctx context.Context, userID string) (current, withdrawn int, err error) {
 	current, withdrawn, err = m.dc.GetBalance(ctx, userID)
 	if err != nil {
 		return 0, 0, fmt.Errorf("get balance error: %w", err)
@@ -169,7 +166,7 @@ func (m *manager) GetBalance(ctx context.Context, userID string) (current, withd
 	return current, withdrawn, nil
 }
 
-func (m *manager) Withdraw(ctx context.Context, userID string, order int, sum int) error {
+func (m *Manager) Withdraw(ctx context.Context, userID string, order int, sum int) error {
 	if !luhn.Valid(strconv.Itoa(order)) {
 		return ErrLuhnAlgo
 	}
@@ -203,7 +200,7 @@ func (m *manager) Withdraw(ctx context.Context, userID string, order int, sum in
 	return nil
 }
 
-func (m *manager) GetWithdrawals(ctx context.Context, userID string) ([]*Withdrawal, error) {
+func (m *Manager) GetWithdrawals(ctx context.Context, userID string) ([]*Withdrawal, error) {
 	withdrawals, err := m.dc.GetWithdrawals(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("get withdrawals error: %w", err)
