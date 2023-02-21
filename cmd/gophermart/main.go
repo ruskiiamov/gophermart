@@ -3,22 +3,20 @@ package main
 import (
 	"context"
 	"fmt"
-	"net"
-	"net/http"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
 	"time"
 
+	"github.com/ruskiiamov/gophermart/internal/access"
 	"github.com/ruskiiamov/gophermart/internal/accrualsystem"
 	"github.com/ruskiiamov/gophermart/internal/bonus"
 	"github.com/ruskiiamov/gophermart/internal/config"
 	"github.com/ruskiiamov/gophermart/internal/database"
-	"github.com/ruskiiamov/gophermart/internal/handler"
 	"github.com/ruskiiamov/gophermart/internal/logger"
+	"github.com/ruskiiamov/gophermart/internal/server"
 	"github.com/ruskiiamov/gophermart/internal/task"
-	"github.com/ruskiiamov/gophermart/internal/user"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -39,7 +37,7 @@ func main() {
 	}
 
 	accrualProvider := accrualsystem.NewConnector(cfg.AccrualSystemAddress)
-	userAuthorizer := user.NewAuthorizer(dbConnection, cfg.SignSecret)
+	accessManager := access.NewManager(dbConnection, cfg.SignSecret)
 	bonusManager := bonus.NewManager(dbConnection, accrualProvider)
 
 	taskDispatcher, err := task.NewDispatcher(gCtx, bonusManager)
@@ -59,14 +57,7 @@ func main() {
 		})
 	}
 
-	//server := server.NewServer(gCtx, cfg.RunAddress, userAuthorizer, bonusManager, taskDispatcher)
-	server := &http.Server{
-		Addr:    cfg.RunAddress,
-		Handler: handler.NewHandler(userAuthorizer, bonusManager, taskDispatcher),
-		BaseContext: func(_ net.Listener) context.Context {
-			return gCtx
-		},
-	}
+	server := server.NewServer(gCtx, cfg.RunAddress, accessManager, bonusManager, taskDispatcher)
 
 	g.Go(func() error {
 		return server.ListenAndServe()

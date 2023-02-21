@@ -5,76 +5,56 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/ruskiiamov/gophermart/internal/access"
 	"github.com/ruskiiamov/gophermart/internal/bonus"
 	"github.com/ruskiiamov/gophermart/internal/task"
-	"github.com/ruskiiamov/gophermart/internal/user"
 )
 
 const (
-	contTypeHeader = "Content-Type"
-	authHeader     = "Authorization"
-	appJSON        = "application/json"
+	contTypeHeader        = "Content-Type"
+	appJSON               = "application/json"
+	authHeader            = "Authorization"
+	userIDKey      ctxKey = "auth_user_id"
 )
 
-func NewServer(ctx context.Context, address string, ua user.AuthorizerI, bm bonus.ManagerI, qc task.DispatcherI) *http.Server {
+type ctxKey string
+
+func NewServer(
+	ctx context.Context,
+	address string,
+	accessManager *access.Manager,
+	bonusManager *bonus.Manager,
+	taskDispatcher *task.Dispatcher,
+) *http.Server {
+	r := chi.NewRouter()
+
+	r.Use(middleware.Compress(5))
+
+	r.Route("/api/user", func(r chi.Router) {
+		r.With(middleware.AllowContentType(appJSON)).Post("/register", registerHnadler(accessManager))
+		r.With(middleware.AllowContentType(appJSON)).Post("/login", loginHandler(accessManager))
+
+		r.With(authMiddleware(accessManager)).Route("/", func(r chi.Router) {
+			r.Route("/orders", func(r chi.Router) {
+				r.Post("/", postOrderHandler(bonusManager, taskDispatcher))
+				r.Get("/", getOrdersHandler(bonusManager))
+			})
+
+			r.Route("/balance", func(r chi.Router) {
+				r.Get("/", balanceHandler(bonusManager))
+				r.With(middleware.AllowContentType(appJSON)).Post("/withdraw", withdrawHandler(bonusManager))
+			})
+			r.Get("/withdrawals", withdrawalsHandler(bonusManager))
+		})
+	})
+
 	return &http.Server{
 		Addr:    address,
-		Handler: createHandler(ua, bm, qc),
+		Handler: r,
 		BaseContext: func(_ net.Listener) context.Context {
 			return ctx
 		},
 	}
-}
-
-func createHandler(ua user.AuthorizerI, bm bonus.ManagerI, qc task.DispatcherI) http.Handler {
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-	})
-
-	mux.Handle("/api/user/register", withMiddleware(
-		register(ua),
-		contType(appJSON),
-		post,
-	))
-
-	mux.Handle("/api/user/login", withMiddleware(
-		login(ua),
-		contType(appJSON),
-		post,
-	))
-
-	mux.Handle("/api/user/orders", withMiddleware(
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			switch r.Method {
-			case http.MethodPost:
-				withMiddleware(postOrders(bm, qc), auth(ua)).ServeHTTP(w, r)
-			case http.MethodGet:
-				withMiddleware(getOrders(bm), auth(ua)).ServeHTTP(w, r)
-			}
-		}),
-		getOrPost,
-	))
-
-	mux.Handle("/api/user/balance", withMiddleware(
-		balance(bm),
-		auth(ua),
-		get,
-	))
-
-	mux.Handle("/api/user/balance/withdraw", withMiddleware(
-		withdraw(bm),
-		contType(appJSON),
-		auth(ua),
-		post,
-	))
-
-	mux.Handle("/api/user/withdrawals", withMiddleware(
-		withdrawals(bm),
-		auth(ua),
-		get,
-	))
-
-	return mux
 }

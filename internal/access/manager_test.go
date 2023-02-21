@@ -1,4 +1,4 @@
-package user
+package access
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 )
 
 func TestRegister(t *testing.T) {
-	dc := new(mockedAuthDataContainer)
-	a := NewAuthorizer(dc, "secret")
+	userProvider := new(mockedUserProvider)
+	accessManager := NewManager(userProvider, "secret")
 
 	tests := []error{nil, ErrLoginExists, errors.New("test")}
 	for _, tt := range tests {
@@ -19,9 +19,9 @@ func TestRegister(t *testing.T) {
 			login := "test_login"
 			password := "test_pass"
 
-			dc.On("CreateUser", mock.Anything, login, mock.AnythingOfType("string")).Return(tt).Once()
-			err := a.Register(context.Background(), login, password)
-			dc.AssertExpectations(t)
+			userProvider.On("CreateUser", mock.Anything, login, mock.AnythingOfType("string")).Return(tt).Once()
+			err := accessManager.Register(context.Background(), login, password)
+			userProvider.AssertExpectations(t)
 
 			if tt != nil {
 				assert.ErrorAs(t, err, &tt)
@@ -33,8 +33,8 @@ func TestRegister(t *testing.T) {
 }
 
 func TestLogin(t *testing.T) {
-	dc := new(mockedAuthDataContainer)
-	a := NewAuthorizer(dc, "secret")
+	userProvider := new(mockedUserProvider)
+	accessManager := NewManager(userProvider, "secret")
 
 	tests := []struct {
 		user *User
@@ -75,9 +75,9 @@ func TestLogin(t *testing.T) {
 			login := "test_login"
 			password := "test_pass"
 
-			dc.On("GetUser", mock.Anything, login).Return(tt.user, tt.uErr).Once()
-			accessToken, err := a.Login(context.Background(), login, password)
-			dc.AssertExpectations(t)
+			userProvider.On("GetUser", mock.Anything, login).Return(tt.user, tt.uErr).Once()
+			accessToken, err := accessManager.Login(context.Background(), login, password)
+			userProvider.AssertExpectations(t)
 
 			if tt.fErr != nil {
 				assert.Error(t, err)
@@ -93,8 +93,8 @@ func TestLogin(t *testing.T) {
 }
 
 func TestAuthByToken(t *testing.T) {
-	dc := new(mockedAuthDataContainer)
-	a := NewAuthorizer(dc, "secret")
+	userProvider := new(mockedUserProvider)
+	accessManager := NewManager(userProvider, "secret")
 
 	tests := []struct {
 		token string
@@ -119,7 +119,7 @@ func TestAuthByToken(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run("auth", func(t *testing.T) {
-			userID, err := a.AuthByToken(context.Background(), tt.token)
+			userID, err := accessManager.AuthByToken(context.Background(), tt.token)
 			if tt.err != nil {
 				assert.Empty(t, userID)
 				assert.ErrorIs(t, err, tt.err)

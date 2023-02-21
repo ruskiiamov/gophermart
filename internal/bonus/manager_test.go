@@ -10,12 +10,12 @@ import (
 )
 
 func TestAddOrder(t *testing.T) {
-	dc := new(mockedBonusDataContainer)
-	asc := new(mockedAccrualSystemConnector)
-	m := NewManager(dc, asc)
+	bonusProvider := new(mockedBonusProvider)
+	accrualProvider := new(mockedAccrualProvider)
+	bonusManager := NewManager(bonusProvider, accrualProvider)
 
 	t.Run("luhn", func(t *testing.T) {
-		err := m.AddOrder(context.Background(), "aaa-bbb-ccc", 79927398714)
+		err := bonusManager.AddOrder(context.Background(), "aaa-bbb-ccc", 79927398714)
 		assert.ErrorIs(t, err, ErrLuhnAlgo)
 	})
 
@@ -54,12 +54,12 @@ func TestAddOrder(t *testing.T) {
 			var o *Order
 			userID := "aaaa-bbbb-cccc-dddd"
 
-			dc.On("CreateOrder", mock.Anything, userID, tt.orderID).Return(o, tt.dErr).Once()
-			dc.On("GetOrder", mock.Anything, tt.orderID).Return(tt.order, nil).Once()
+			bonusProvider.On("CreateOrder", mock.Anything, userID, tt.orderID).Return(o, tt.dErr).Once()
+			bonusProvider.On("GetOrder", mock.Anything, tt.orderID).Return(tt.order, nil).Once()
 
-			err := m.AddOrder(context.Background(), userID, tt.orderID)
+			err := bonusManager.AddOrder(context.Background(), userID, tt.orderID)
 
-			dc.AssertExpectations(t)
+			bonusProvider.AssertExpectations(t)
 
 			assert.ErrorIs(t, err, tt.fErr)
 		})
@@ -76,20 +76,20 @@ func TestAddOrder(t *testing.T) {
 			CreatedAt: time.Now(),
 		}
 
-		dc.On("CreateOrder", mock.Anything, userID, orderID).Return(order, nil).Once()
+		bonusProvider.On("CreateOrder", mock.Anything, userID, orderID).Return(order, nil).Once()
 
-		err := m.AddOrder(context.Background(), userID, orderID)
+		err := bonusManager.AddOrder(context.Background(), userID, orderID)
 
-		dc.AssertExpectations(t)
+		bonusProvider.AssertExpectations(t)
 
 		assert.NoError(t, err)
 	})
 }
 
 func TestGetOrders(t *testing.T) {
-	dc := new(mockedBonusDataContainer)
-	asc := new(mockedAccrualSystemConnector)
-	m := NewManager(dc, asc)
+	bonusProvider := new(mockedBonusProvider)
+	accrualProvider := new(mockedAccrualProvider)
+	bonusManager := NewManager(bonusProvider, accrualProvider)
 
 	tests := []struct {
 		orders []*Order
@@ -136,11 +136,11 @@ func TestGetOrders(t *testing.T) {
 		t.Run("name", func(t *testing.T) {
 			userID := "aaaa-bbbb-cccc-dddd"
 
-			dc.On("GetOrders", mock.Anything, userID).Return(tt.orders, nil).Once()
+			bonusProvider.On("GetOrders", mock.Anything, userID).Return(tt.orders, nil).Once()
 
-			orders, err := m.GetOrders(context.Background(), userID)
+			orders, err := bonusManager.GetOrders(context.Background(), userID)
 
-			dc.AssertExpectations(t)
+			bonusProvider.AssertExpectations(t)
 
 			assert.NoError(t, err)
 			assert.ElementsMatch(t, orders, tt.orders)
@@ -149,20 +149,20 @@ func TestGetOrders(t *testing.T) {
 }
 
 func TestGetBalance(t *testing.T) {
-	dc := new(mockedBonusDataContainer)
-	asc := new(mockedAccrualSystemConnector)
-	m := NewManager(dc, asc)
+	bonusProvider := new(mockedBonusProvider)
+	accrualProvider := new(mockedAccrualProvider)
+	bonusManager := NewManager(bonusProvider, accrualProvider)
 
 	t.Run("balance", func(t *testing.T) {
 		userID := "aaaa-bbbb-cccc-dddd"
 		current := 50050
 		withdrawn := 4200
 
-		dc.On("GetBalance", mock.Anything, userID).Return(current, withdrawn, nil)
+		bonusProvider.On("GetBalance", mock.Anything, userID).Return(current, withdrawn, nil)
 
-		c, w, err := m.GetBalance(context.Background(), userID)
+		c, w, err := bonusManager.GetBalance(context.Background(), userID)
 
-		dc.AssertExpectations(t)
+		bonusProvider.AssertExpectations(t)
 
 		assert.NoError(t, err)
 		assert.Equal(t, current, c)
@@ -171,17 +171,17 @@ func TestGetBalance(t *testing.T) {
 }
 
 func TestWithdraw(t *testing.T) {
-	dc := new(mockedBonusDataContainer)
-	asc := new(mockedAccrualSystemConnector)
-	m := NewManager(dc, asc)
+	bonusProvider := new(mockedBonusProvider)
+	accrualProvider := new(mockedAccrualProvider)
+	bonusManager := NewManager(bonusProvider, accrualProvider)
 
 	t.Run("luhn", func(t *testing.T) {
-		err := m.Withdraw(context.Background(), "aaa-bbb-ccc", 79927398714, 5000)
+		err := bonusManager.Withdraw(context.Background(), "aaa-bbb-ccc", 79927398714, 5000)
 		assert.ErrorIs(t, err, ErrLuhnAlgo)
 	})
 
 	t.Run("negative sum", func(t *testing.T) {
-		err := m.Withdraw(context.Background(), "aaa-bbb-ccc", 79927398713, -5000)
+		err := bonusManager.Withdraw(context.Background(), "aaa-bbb-ccc", 79927398713, -5000)
 		assert.ErrorIs(t, err, ErrWrongSum)
 	})
 
@@ -194,10 +194,10 @@ func TestWithdraw(t *testing.T) {
 			CreatedAt: time.Now(),
 		}
 
-		dc.On("GetOrder", mock.Anything, orderID).Return(order, nil).Once()
-		err := m.Withdraw(context.Background(), "aaa-bbb-ccc", orderID, 5000)
+		bonusProvider.On("GetOrder", mock.Anything, orderID).Return(order, nil).Once()
+		err := bonusManager.Withdraw(context.Background(), "aaa-bbb-ccc", orderID, 5000)
 
-		dc.AssertExpectations(t)
+		bonusProvider.AssertExpectations(t)
 		assert.ErrorIs(t, err, ErrOrderExists)
 	})
 
@@ -206,12 +206,12 @@ func TestWithdraw(t *testing.T) {
 		orderID := 79927398713
 		userID := "aaaa-bbbb-cccc-dddd"
 
-		dc.On("GetOrder", mock.Anything, orderID).Return(ord, ErrOrderNotFound).Once()
-		dc.On("GetBalance", mock.Anything, userID).Return(50050, 4200, nil).Once()
+		bonusProvider.On("GetOrder", mock.Anything, orderID).Return(ord, ErrOrderNotFound).Once()
+		bonusProvider.On("GetBalance", mock.Anything, userID).Return(50050, 4200, nil).Once()
 
-		err := m.Withdraw(context.Background(), userID, orderID, 70000)
+		err := bonusManager.Withdraw(context.Background(), userID, orderID, 70000)
 
-		dc.AssertExpectations(t)
+		bonusProvider.AssertExpectations(t)
 		assert.ErrorIs(t, err, ErrNotEnough)
 	})
 
@@ -221,13 +221,13 @@ func TestWithdraw(t *testing.T) {
 		userID := "aaaa-bbbb-cccc-dddd"
 		sum := 40000
 
-		dc.On("GetOrder", mock.Anything, orderID).Return(ord, ErrOrderNotFound).Once()
-		dc.On("GetBalance", mock.Anything, userID).Return(50050, 4200, nil).Once()
-		dc.On("CreateWithdraw", mock.Anything, userID, orderID, sum).Return(ErrOrderExists).Once()
+		bonusProvider.On("GetOrder", mock.Anything, orderID).Return(ord, ErrOrderNotFound).Once()
+		bonusProvider.On("GetBalance", mock.Anything, userID).Return(50050, 4200, nil).Once()
+		bonusProvider.On("CreateWithdraw", mock.Anything, userID, orderID, sum).Return(ErrOrderExists).Once()
 
-		err := m.Withdraw(context.Background(), userID, orderID, sum)
+		err := bonusManager.Withdraw(context.Background(), userID, orderID, sum)
 
-		dc.AssertExpectations(t)
+		bonusProvider.AssertExpectations(t)
 		assert.ErrorIs(t, err, ErrOrderExists)
 	})
 
@@ -237,21 +237,21 @@ func TestWithdraw(t *testing.T) {
 		userID := "aaaa-bbbb-cccc-dddd"
 		sum := 40000
 
-		dc.On("GetOrder", mock.Anything, orderID).Return(ord, ErrOrderNotFound).Once()
-		dc.On("GetBalance", mock.Anything, userID).Return(50050, 4200, nil).Once()
-		dc.On("CreateWithdraw", mock.Anything, userID, orderID, sum).Return(nil).Once()
+		bonusProvider.On("GetOrder", mock.Anything, orderID).Return(ord, ErrOrderNotFound).Once()
+		bonusProvider.On("GetBalance", mock.Anything, userID).Return(50050, 4200, nil).Once()
+		bonusProvider.On("CreateWithdraw", mock.Anything, userID, orderID, sum).Return(nil).Once()
 
-		err := m.Withdraw(context.Background(), userID, orderID, sum)
+		err := bonusManager.Withdraw(context.Background(), userID, orderID, sum)
 
-		dc.AssertExpectations(t)
+		bonusProvider.AssertExpectations(t)
 		assert.NoError(t, err)
 	})
 }
 
 func TestGetWithdrawals(t *testing.T) {
-	dc := new(mockedBonusDataContainer)
-	asc := new(mockedAccrualSystemConnector)
-	m := NewManager(dc, asc)
+	bonusProvider := new(mockedBonusProvider)
+	accrualProvider := new(mockedAccrualProvider)
+	bonusManager := NewManager(bonusProvider, accrualProvider)
 
 	tests := []struct {
 		withdrawals []*Withdrawal
@@ -280,10 +280,10 @@ func TestGetWithdrawals(t *testing.T) {
 		t.Run("", func(t *testing.T) {
 			userID := "aaaa-bbbb-cccc-dddd"
 
-			dc.On("GetWithdrawals", mock.Anything, userID).Return(tt.withdrawals, nil).Once()
-			withdrawals, err := m.GetWithdrawals(context.Background(), userID)
+			bonusProvider.On("GetWithdrawals", mock.Anything, userID).Return(tt.withdrawals, nil).Once()
+			withdrawals, err := bonusManager.GetWithdrawals(context.Background(), userID)
 
-			dc.AssertExpectations(t)
+			bonusProvider.AssertExpectations(t)
 			assert.NoError(t, err)
 			assert.ElementsMatch(t, withdrawals, tt.withdrawals)
 		})

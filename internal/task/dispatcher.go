@@ -17,12 +17,6 @@ func NewTask(orderID int) *Task {
 	return &Task{orderID: orderID}
 }
 
-// TODO delete
-type DispatcherI interface {
-	Push(t *Task)
-	PopWait() *Task
-}
-
 type Dispatcher struct {
 	arr  []*Task
 	mu   sync.Mutex
@@ -30,7 +24,7 @@ type Dispatcher struct {
 	ctx  context.Context
 }
 
-func NewDispatcher(ctx context.Context, bm bonus.ManagerI) (*Dispatcher, error) {
+func NewDispatcher(ctx context.Context, bm *bonus.Manager) (*Dispatcher, error) {
 	c := &Dispatcher{ctx: ctx}
 	c.cond = sync.NewCond(&c.mu)
 

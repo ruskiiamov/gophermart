@@ -12,8 +12,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
+	"github.com/ruskiiamov/gophermart/internal/access"
 	"github.com/ruskiiamov/gophermart/internal/bonus"
-	"github.com/ruskiiamov/gophermart/internal/user"
 )
 
 const source = "file://internal/database/migrations"
@@ -68,7 +68,7 @@ func (c *Connection) CreateUser(ctx context.Context, login, passHash string) err
 	).Scan(&id)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return user.ErrLoginExists
+		return access.ErrLoginExists
 	}
 	if err != nil {
 		return fmt.Errorf("insert user error: %w", err)
@@ -77,8 +77,8 @@ func (c *Connection) CreateUser(ctx context.Context, login, passHash string) err
 	return nil
 }
 
-func (c *Connection) GetUser(ctx context.Context, login string) (*user.User, error) {
-	u := &user.User{Login: login}
+func (c *Connection) GetUser(ctx context.Context, login string) (*access.User, error) {
+	u := &access.User{Login: login}
 
 	err := c.dbpool.QueryRow(
 		ctx,
@@ -87,7 +87,7 @@ func (c *Connection) GetUser(ctx context.Context, login string) (*user.User, err
 	).Scan(&(u.ID), &(u.PassHash))
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, user.ErrLoginNotFound
+		return nil, access.ErrLoginNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("select user error: %w", err)

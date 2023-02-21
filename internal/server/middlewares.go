@@ -1,23 +1,17 @@
-package handler
+package server
 
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/rs/zerolog/log"
-	"github.com/ruskiiamov/gophermart/internal/user"
+	"github.com/ruskiiamov/gophermart/internal/access"
+	"github.com/ruskiiamov/gophermart/internal/logger"
 )
 
-const (
-	authHeader        = "Authorization"
-	userIDKey  ctxKey = "auth_user_id"
-)
-
-type ctxKey string
-
-func auth(ua *user.Authorizer) func(http.Handler) http.Handler {
+func authMiddleware(accessManager *access.Manager) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			accessToken := r.Header.Get(authHeader)
@@ -29,13 +23,13 @@ func auth(ua *user.Authorizer) func(http.Handler) http.Handler {
 			ctx, cancel := context.WithTimeout(r.Context(), 100*time.Millisecond)
 			defer cancel()
 
-			userID, err := ua.AuthByToken(ctx, accessToken)
-			if errors.Is(err, user.ErrTokenNotValid) {
+			userID, err := accessManager.AuthByToken(ctx, accessToken)
+			if errors.Is(err, access.ErrTokenNotValid) {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
 			if err != nil {
-				log.Error().Msgf("auth by token error: %s", err)
+				logger.Error(fmt.Sprintf("auth by token error: %s", err))
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
