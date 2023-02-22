@@ -78,7 +78,7 @@ func (c *Dispatcher) SetLockedUntil(lockedUntil time.Time) {
 	}
 
 	c.lockedUntil = lockedUntil
-	time.AfterFunc(lockedUntil.Sub(time.Now()), func() {
+	time.AfterFunc(time.Until(lockedUntil) , func() {
 		c.cond.Broadcast()
 	})
 }
