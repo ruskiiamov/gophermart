@@ -7,10 +7,8 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"sync"
 	"time"
 
-	"github.com/ruskiiamov/gophermart/internal/bonus"
 	"github.com/ruskiiamov/gophermart/internal/logger"
 )
 
@@ -26,28 +24,32 @@ type Order struct {
 	Accrual float64 `json:"accrual"`
 }
 
+type ErrNotAvailable struct {
+	AvailableSince time.Time
+}
+
+func (e *ErrNotAvailable) Error() string {
+	return fmt.Sprintf("accrual system not available until %s", e.AvailableSince.Format(time.RFC3339))
+}
+
 type Connector struct {
-	address string
-	client  http.Client
-	lock    chan struct{}
-	mu      sync.Mutex
+	address        string
+	client         http.Client
+	availableSince time.Time
 }
 
 func NewConnector(address string) *Connector {
-	lock := make(chan struct{})
-	close(lock)
-
 	return &Connector{
-		address: address,
-		client: http.Client{
-			Timeout: timeout,
-		},
-		lock: lock,
+		address:        address,
+		client:         http.Client{Timeout: timeout},
+		availableSince: time.Now(),
 	}
 }
 
 func (c *Connector) GetAccrual(ctx context.Context, orderID int) (status string, accrual int, err error) {
-	<-c.lock
+	if time.Now().Before(c.availableSince) {
+		return "", 0, &ErrNotAvailable{AvailableSince: c.availableSince}
+	}
 
 	url := c.address + "/api/orders/" + strconv.Itoa(orderID)
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -61,9 +63,9 @@ func (c *Connector) GetAccrual(ctx context.Context, orderID int) (status string,
 	}
 
 	if response.StatusCode == http.StatusTooManyRequests {
-		retryAfter := c.getRetryAfter(response)
-		c.lockByTooManyRequests(retryAfter)
-		return "", 0, bonus.ErrAccrualNotReady
+		retryAfter := getRetryAfter(response)
+		c.availableSince = time.Now().Add(time.Duration(retryAfter) * time.Second)
+		return "", 0, &ErrNotAvailable{AvailableSince: c.availableSince}
 	}
 
 	if response.StatusCode != http.StatusOK {
@@ -86,34 +88,17 @@ func (c *Connector) GetAccrual(ctx context.Context, orderID int) (status string,
 	return order.Status, accrual, nil
 }
 
-func (c *Connector) getRetryAfter(response *http.Response) int {
-	var retryAfter int
-	var err error
-
+func getRetryAfter(response *http.Response) int {
 	retryAfterValue := response.Header.Get(retryAfterHeader)
-	if retryAfterValue != "" {
-		retryAfter, err = strconv.Atoi(retryAfterValue)
-		if err != nil {
-			logger.Error(fmt.Sprintf("retry-after atoi error: %s", err))
-			retryAfter = defaultRetryAfter
-		}
-	} else {
-		retryAfter = defaultRetryAfter
+	if retryAfterValue == "" {
+		return defaultRetryAfter
+	}
+
+	retryAfter, err := strconv.Atoi(retryAfterValue)
+	if err != nil {
+		logger.Error(fmt.Sprintf("retry-after atoi error: %s", err))
+		return defaultRetryAfter
 	}
 
 	return retryAfter
-}
-
-func (c *Connector) lockByTooManyRequests(retryAfter int) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	select {
-	case <-c.lock:
-		c.lock = make(chan struct{})
-		time.AfterFunc((time.Duration(retryAfter) * time.Second), func() {
-			close(c.lock)
-		})
-	default:
-	}
 }

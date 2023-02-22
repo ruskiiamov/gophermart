@@ -113,9 +113,6 @@ func (b *Manager) GetNotFinalOrders(ctx context.Context) ([]*Order, error) {
 
 func (b *Manager) SetOrderAccrual(ctx context.Context, orderID int) error {
 	status, accrual, err := b.accrualProvider.GetAccrual(ctx, orderID)
-	if errors.Is(err, ErrAccrualNotReady) {
-		return err
-	}
 	if err != nil {
 		return fmt.Errorf("get accrual error: %w", err)
 	}

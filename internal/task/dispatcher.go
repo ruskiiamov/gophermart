@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ruskiiamov/gophermart/internal/bonus"
 )
@@ -18,14 +19,18 @@ func NewTask(orderID int) *Task {
 }
 
 type Dispatcher struct {
-	arr  []*Task
-	mu   sync.Mutex
-	cond *sync.Cond
-	ctx  context.Context
+	arr         []*Task
+	mu          sync.Mutex
+	cond        *sync.Cond
+	ctx         context.Context
+	lockedUntil time.Time
 }
 
 func NewDispatcher(ctx context.Context, bm *bonus.Manager) (*Dispatcher, error) {
-	c := &Dispatcher{ctx: ctx}
+	c := &Dispatcher{
+		ctx:         ctx,
+		lockedUntil: time.Now(),
+	}
 	c.cond = sync.NewCond(&c.mu)
 
 	orders, err := bm.GetNotFinalOrders(ctx)
@@ -53,7 +58,7 @@ func (c *Dispatcher) PopWait() *Task {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	for len(c.arr) == 0 {
+	for len(c.arr) == 0 || time.Now().Before(c.lockedUntil) {
 		select {
 		case <-c.ctx.Done():
 			return nil
@@ -65,6 +70,17 @@ func (c *Dispatcher) PopWait() *Task {
 	t := c.arr[0]
 	c.arr = c.arr[1:]
 	return t
+}
+
+func (c *Dispatcher) SetLockedUntil(lockedUntil time.Time) {
+	if time.Now().After(lockedUntil) {
+		return
+	}
+
+	c.lockedUntil = lockedUntil
+	time.AfterFunc(lockedUntil.Sub(time.Now()), func() {
+		c.cond.Broadcast()
+	})
 }
 
 func (c *Dispatcher) Close() {
