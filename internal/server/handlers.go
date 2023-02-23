@@ -13,7 +13,8 @@ import (
 	"github.com/ruskiiamov/gophermart/internal/access"
 	"github.com/ruskiiamov/gophermart/internal/bonus"
 	"github.com/ruskiiamov/gophermart/internal/logger"
-	"github.com/ruskiiamov/gophermart/internal/task"
+	"github.com/ruskiiamov/gophermart/internal/queue"
+	"github.com/ruskiiamov/gophermart/internal/tasks"
 )
 
 type request struct {
@@ -114,7 +115,7 @@ func loginHandler(accessManager *access.Manager) http.HandlerFunc {
 	})
 }
 
-func postOrderHandler(bonusManager *bonus.Manager, taskDispatcher *task.Dispatcher) http.HandlerFunc {
+func postOrderHandler(bonusManager *bonus.Manager, taskDispatcher *queue.Dispatcher) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userID, ok := r.Context().Value(userIDKey).(string)
 		if !ok || userID == "" {
@@ -157,7 +158,7 @@ func postOrderHandler(bonusManager *bonus.Manager, taskDispatcher *task.Dispatch
 			return
 		}
 
-		taskDispatcher.Push(task.NewTask(intOrderID))
+		taskDispatcher.Push(tasks.NewAccrualTask(bonusManager, intOrderID))
 
 		w.WriteHeader(http.StatusAccepted)
 	})

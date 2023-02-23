@@ -148,6 +148,75 @@ func TestGetOrders(t *testing.T) {
 	}
 }
 
+func TestGetNotFinalOrders(t *testing.T) {
+	bonusProvider := new(mockedBonusProvider)
+	accrualProvider := new(mockedAccrualProvider)
+	bonusManager := NewManager(bonusProvider, accrualProvider)
+
+	orders := []*Order{
+		{
+			ID:      12345678903,
+			UserID:  "aaaa-bbbb-cccc-dddd",
+			Status:  "PROCESSING",
+			Accrual: 0,
+			CreatedAt: func() time.Time {
+				t, _ := time.Parse(time.RFC3339, "2020-12-10T15:12:01+03:00")
+				return t
+			}(),
+		},
+	}
+
+	t.Run("ok", func(t *testing.T) {
+		bonusProvider.On("GetNotFinalOrders", mock.Anything).Return(orders, nil).Once()
+
+		notFinalOrders, err := bonusManager.GetNotFinalOrders(context.Background())
+
+		bonusProvider.AssertExpectations(t)
+
+		assert.NoError(t, err)
+		assert.ElementsMatch(t, orders, notFinalOrders)
+	})
+}
+
+func TestSetOrderAccrual(t *testing.T) {
+	bonusProvider := new(mockedBonusProvider)
+	accrualProvider := new(mockedAccrualProvider)
+	bonusManager := NewManager(bonusProvider, accrualProvider)
+
+	tests := []struct {
+		orderID int
+		status  string
+		accrual int
+		finErr  error
+	}{
+		{
+			orderID: 9278923470,
+			status:  "PROCESSED",
+			accrual: 500,
+			finErr:  nil,
+		},
+		{
+			orderID: 12345678903,
+			status:  "PROCESSING",
+			accrual: 0,
+			finErr:  ErrAccrualNotReady,
+		},
+	}
+	for _, tt := range tests {
+		t.Run("ok", func(t *testing.T) {
+			accrualProvider.On("GetAccrual", mock.Anything, tt.orderID).Return(tt.status, tt.accrual, nil).Once()
+			bonusProvider.On("UpdateOrder", mock.Anything, tt.orderID, tt.accrual, tt.status).Return(nil).Once()
+
+			err := bonusManager.SetOrderAccrual(context.Background(), tt.orderID)
+
+			accrualProvider.AssertExpectations(t)
+			bonusProvider.AssertExpectations(t)
+
+			assert.ErrorIs(t, err, tt.finErr)
+		})
+	}
+}
+
 func TestGetBalance(t *testing.T) {
 	bonusProvider := new(mockedBonusProvider)
 	accrualProvider := new(mockedAccrualProvider)

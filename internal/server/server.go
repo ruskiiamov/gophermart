@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/ruskiiamov/gophermart/internal/access"
 	"github.com/ruskiiamov/gophermart/internal/bonus"
-	"github.com/ruskiiamov/gophermart/internal/task"
+	"github.com/ruskiiamov/gophermart/internal/queue"
 )
 
 const (
@@ -26,7 +26,7 @@ func NewServer(
 	address string,
 	accessManager *access.Manager,
 	bonusManager *bonus.Manager,
-	taskDispatcher *task.Dispatcher,
+	taskDispatcher *queue.Dispatcher,
 ) *http.Server {
 	r := chi.NewRouter()
 

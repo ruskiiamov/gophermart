@@ -1,51 +1,34 @@
-package task
+package queue
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
-
-	"github.com/ruskiiamov/gophermart/internal/bonus"
 )
 
-type Task struct {
-	orderID int
-	tries   int
-}
-
-func NewTask(orderID int) *Task {
-	return &Task{orderID: orderID}
+type Task interface {
+	Handle() error
 }
 
 type Dispatcher struct {
-	arr         []*Task
+	arr         []Task
 	mu          sync.Mutex
 	cond        *sync.Cond
 	ctx         context.Context
 	lockedUntil time.Time
 }
 
-func NewDispatcher(ctx context.Context, bm *bonus.Manager) (*Dispatcher, error) {
+func NewDispatcher(ctx context.Context) *Dispatcher {
 	c := &Dispatcher{
 		ctx:         ctx,
 		lockedUntil: time.Now(),
 	}
 	c.cond = sync.NewCond(&c.mu)
 
-	orders, err := bm.GetNotFinalOrders(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("get not final orders error: %w", err)
-	}
-
-	for _, order := range orders {
-		c.arr = append(c.arr, NewTask(order.ID))
-	}
-
-	return c, nil
+	return c
 }
 
-func (c *Dispatcher) Push(t *Task) {
+func (c *Dispatcher) Push(t Task) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -54,7 +37,7 @@ func (c *Dispatcher) Push(t *Task) {
 	c.cond.Signal()
 }
 
-func (c *Dispatcher) PopWait() *Task {
+func (c *Dispatcher) PopWait() Task {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -78,7 +61,7 @@ func (c *Dispatcher) SetLockedUntil(lockedUntil time.Time) {
 	}
 
 	c.lockedUntil = lockedUntil
-	time.AfterFunc(time.Until(lockedUntil) , func() {
+	time.AfterFunc(time.Until(lockedUntil), func() {
 		c.cond.Broadcast()
 	})
 }
